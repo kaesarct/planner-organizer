@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Task - Scout Planner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>✅ Task Board</h2>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#taskModal">+ Nuovo Task</button>
+</div>
+
+<!-- Kanban Board -->
+<div class="row" id="kanban-board">
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">📋 Da Fare</h5>
+                <small id="pending-count">0 task</small>
+            </div>
+            <div class="card-body kanban-column" id="pending-tasks" data-status="pending">
+                <!-- Task pending -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">⚙️ In Corso</h5>
+                <small id="progress-count">0 task</small>
+            </div>
+            <div class="card-body kanban-column" id="progress-tasks" data-status="in_progress">
+                <!-- Task in progress -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">✅ Completati</h5>
+                <small id="completed-count">0 task</small>
+            </div>
+            <div class="card-body kanban-column" id="completed-tasks" data-status="completed">
+                <!-- Task completed -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">❌ Annullati</h5>
+                <small id="cancelled-count">0 task</small>
+            </div>
+            <div class="card-body kanban-column" id="cancelled-tasks" data-status="cancelled">
+                <!-- Task cancelled -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuovo Task -->
+<div class="modal fade" id="taskModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuovo Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="mb-3">
+                        <label class="form-label">Titolo</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrizione</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Priorità</label>
+                        <select class="form-control" name="priority">
+                            <option value="low">Bassa</option>
+                            <option value="medium" selected>Media</option>
+                            <option value="high">Alta</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Scadenza</label>
+                        <input type="datetime-local" class="form-control" name="due_date">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-success" onclick="saveTask()">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadTasks() {
+    const response = await fetch('http://localhost:8001/tasks');
+    const tasks = await response.json();
+    
+    // Separa task per stato
+    const pendingTasks = tasks.filter(task => task.status === 'pending');
+    const progressTasks = tasks.filter(task => task.status === 'in_progress');
+    const completedTasks = tasks.filter(task => task.status === 'completed');
+    const cancelledTasks = tasks.filter(task => task.status === 'cancelled');
+    
+    // Aggiorna contatori
+    document.getElementById('pending-count').textContent = `${pendingTasks.length} task`;
+    document.getElementById('progress-count').textContent = `${progressTasks.length} task`;
+    document.getElementById('completed-count').textContent = `${completedTasks.length} task`;
+    document.getElementById('cancelled-count').textContent = `${cancelledTasks.length} task`;
+    
+    // Popola colonne
+    populateColumn('pending-tasks', pendingTasks);
+    populateColumn('progress-tasks', progressTasks);
+    populateColumn('completed-tasks', completedTasks);
+    populateColumn('cancelled-tasks', cancelledTasks);
+    
+    // Inizializza drop zones se non già fatto
+    if (!window.dropZonesInitialized) {
+        initializeDropZones();
+        window.dropZonesInitialized = true;
+    }
+}
+
+function populateColumn(columnId, tasks) {
+    const column = document.getElementById(columnId);
+    
+    if (tasks.length === 0) {
+        column.innerHTML = '<p class="text-muted text-center">Nessun task</p>';
+        return;
+    }
+    
+    column.innerHTML = tasks.map(task => {
+        const priorityColor = task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'secondary';
+        const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+        
+        return `
+            <div class="task-card mb-3 ${isOverdue ? 'border-danger' : ''}" data-task-id="${task.id}" draggable="true">
+                <div class="card">
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2">${task.title}</h6>
+                        ${task.description ? `<p class="card-text small text-muted mb-2">${task.description}</p>` : ''}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-${priorityColor}">${task.priority}</span>
+                            ${task.due_date ? `<small class="text-muted">${formatTaskDate(task.due_date)}</small>` : ''}
+                        </div>
+                        ${isOverdue ? '<div class="mt-1"><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Scaduto</small></div>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Aggiungi event listeners per drag & drop
+    addDragListeners(column);
+}
+
+function formatTaskDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = date - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Oggi';
+    if (diffDays === 1) return 'Domani';
+    if (diffDays < 0) return `${Math.abs(diffDays)} giorni fa`;
+    if (diffDays < 7) return `Tra ${diffDays} giorni`;
+    
+    return date.toLocaleDateString('it-IT');
+}
+
+function addDragListeners(column) {
+    const taskCards = column.querySelectorAll('.task-card');
+    
+    taskCards.forEach(card => {
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+    });
+}
+
+// Aggiungi listeners alle colonne una sola volta
+function initializeDropZones() {
+    const columns = document.querySelectorAll('.kanban-column');
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('dragleave', handleDragLeave);
+        column.addEventListener('drop', handleDrop);
+    });
+}
+
+let draggedTask = null;
+
+function handleDragStart(e) {
+    draggedTask = this;
+    this.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.outerHTML);
+}
+
+function handleDragEnd(e) {
+    this.style.opacity = '1';
+    draggedTask = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    // Solo rimuovi la classe se stiamo davvero uscendo dalla colonna
+    if (!this.contains(e.relatedTarget)) {
+        this.classList.remove('drag-over');
+    }
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    
+    if (!draggedTask) return;
+    
+    const newStatus = this.dataset.status;
+    const taskId = draggedTask.dataset.taskId;
+    
+    // Non fare nulla se il task è già nella colonna corretta
+    if (draggedTask.closest('.kanban-column').dataset.status === newStatus) {
+        return;
+    }
+    
+    try {
+        await fetch(`http://localhost:8001/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        // Ricarica i task
+        loadTasks();
+        showAlert(`Task spostato in "${getStatusLabel(newStatus)}"`, 'success');
+    } catch (error) {
+        showAlert('Errore nello spostamento del task', 'danger');
+        loadTasks(); // Ricarica comunque per ripristinare lo stato
+    }
+}
+
+function getStatusLabel(status) {
+    const labels = {
+        'pending': 'Da Fare',
+        'in_progress': 'In Corso',
+        'completed': 'Completati',
+        'cancelled': 'Annullati'
+    };
+    return labels[status] || status;
+}
+
+async function saveTask() {
+    const form = document.getElementById('taskForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    data.assigned_to = 1;
+    data.created_by = 1;
+    
+    await fetch('http://localhost:8001/tasks', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+    loadTasks();
+}
+
+loadTasks();
+</script>
+{% endblock %}

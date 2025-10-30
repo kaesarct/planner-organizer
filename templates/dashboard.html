@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Scout Planner{% endblock %}
+
+{% block content %}
+<h2>📊 Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Eventi Attivi</h5>
+                <h2 id="active-events">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Task Pending</h5>
+                <h2 id="pending-tasks">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Utenti Attivi</h5>
+                <h2 id="active-users">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">Gruppi</h5>
+                <h2 id="total-groups">2</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Prossimi Eventi</h5>
+            </div>
+            <div class="card-body" id="upcoming-events">
+                <!-- Eventi caricati dinamicamente -->
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Task Urgenti</h5>
+            </div>
+            <div class="card-body" id="urgent-tasks">
+                <!-- Task caricati dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadDashboard() {
+    // Carica statistiche
+    const events = await fetch('http://localhost:8001/events').then(r => r.json());
+    const tasks = await fetch('http://localhost:8001/tasks').then(r => r.json());
+    
+    // Aggiorna contatori
+    document.getElementById('active-events').textContent = events.length;
+    document.getElementById('pending-tasks').textContent = tasks.length;
+    document.getElementById('active-users').textContent = '12'; // Mock
+    
+    // Prossimi eventi (prossimi 5)
+    const now = new Date();
+    const upcomingEvents = events
+        .filter(event => new Date(event.start_date) >= now)
+        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+        .slice(0, 5);
+    
+    const upcomingContainer = document.getElementById('upcoming-events');
+    if (upcomingEvents.length > 0) {
+        upcomingContainer.innerHTML = upcomingEvents.map(event => `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-start border-3 border-success">
+                <div>
+                    <strong>${event.title}</strong><br>
+                    <small class="text-muted">${formatDashboardDate(event.start_date)}</small>
+                </div>
+                <span class="badge bg-primary">${event.type}</span>
+            </div>
+        `).join('');
+    } else {
+        upcomingContainer.innerHTML = '<p class="text-muted">Nessun evento in programma</p>';
+    }
+    
+    // Task urgenti (scadenza entro 7 giorni)
+    const urgentDeadline = new Date();
+    urgentDeadline.setDate(urgentDeadline.getDate() + 7);
+    
+    const urgentTasks = tasks
+        .filter(task => {
+            if (!task.due_date || task.status === 'completed') return false;
+            const dueDate = new Date(task.due_date);
+            return dueDate <= urgentDeadline && dueDate >= now;
+        })
+        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+        .slice(0, 5);
+    
+    const urgentContainer = document.getElementById('urgent-tasks');
+    if (urgentTasks.length > 0) {
+        urgentContainer.innerHTML = urgentTasks.map(task => {
+            const priority = task.priority || 'medium';
+            const priorityColor = priority === 'high' ? 'danger' : priority === 'medium' ? 'warning' : 'secondary';
+            
+            return `
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-start border-3 border-${priorityColor}">
+                    <div>
+                        <strong>${task.title}</strong><br>
+                        <small class="text-muted">Scadenza: ${formatDashboardDate(task.due_date)}</small>
+                    </div>
+                    <span class="badge bg-${priorityColor}">${priority}</span>
+                </div>
+            `;
+        }).join('');
+    } else {
+        urgentContainer.innerHTML = '<p class="text-muted">Nessun task urgente</p>';
+    }
+}
+
+function formatDashboardDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = date - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Oggi';
+    if (diffDays === 1) return 'Domani';
+    if (diffDays < 7) return `Tra ${diffDays} giorni`;
+    
+    return date.toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+loadDashboard();
+</script>
+{% endblock %}
