@@ -13,4 +13,5 @@ class Task(BaseModel):
     assigned_to = ForeignKeyField(User, backref='assigned_tasks')
     created_by = ForeignKeyField(User, backref='created_tasks')
     event = ForeignKeyField(Event, backref='tasks', null=True)
+    visible = BooleanField(default=True)
     created_at = DateTimeField(default=datetime.now)

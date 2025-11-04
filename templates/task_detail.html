@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>📋 Dettaglio Task</h5>
+                <a href="/tasks" class="btn btn-secondary btn-sm">← Torna ai Task</a>
+            </div>
+            <div class="card-body">
+                <h4>{{ task.title }}</h4>
+                
+                {% if task.description %}
+                    <div class="mb-3">
+                        <strong>Descrizione:</strong>
+                        <p class="text-muted">{{ task.description }}</p>
+                    </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Priorità:</strong>
+                        <span class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }} ms-2">
+                            {{ task.priority }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        <span class="badge bg-{{ 'success' if task.status == 'completed' else 'primary' if task.status == 'in_progress' else 'secondary' }} ms-2">
+                            {{ task.status }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Assegnato a:</strong> {{ task.assigned_to }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Creato da:</strong> {{ task.created_by }}
+                    </div>
+                </div>
+                
+                {% if task.due_date %}
+                    <div class="mb-3">
+                        <strong>Scadenza:</strong> {{ task.due_date.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                {% endif %}
+                
+                <!-- Form di modifica basato sui permessi -->
+                {% if user.role in ['reviewer', 'admin'] %}
+                    <hr>
+                    <h6>Modifica Task</h6>
+                    <form method="post" action="/task/{{ task.id }}/update">
+                        {% if user.role == 'reviewer' %}
+                            <div class="mb-3">
+                                <label class="form-label">Cambia Status:</label>
+                                <select name="status" class="form-select">
+                                    <option value="pending" {{ 'selected' if task.status == 'pending' else '' }}>Da Fare</option>
+                                    <option value="in_progress" {{ 'selected' if task.status == 'in_progress' else '' }}>In Corso</option>
+                                    <option value="completed" {{ 'selected' if task.status == 'completed' else '' }}>Completato</option>
+                                    <option value="cancelled" {{ 'selected' if task.status == 'cancelled' else '' }}>Annullato</option>
+                                </select>
+                            </div>
+                        {% endif %}
+                        
+                        {% if user.role == 'admin' %}
+                            <div class="mb-3">
+                                <label class="form-label">Cambia Status:</label>
+                                <select name="status" class="form-select">
+                                    <option value="pending" {{ 'selected' if task.status == 'pending' else '' }}>Da Fare</option>
+                                    <option value="in_progress" {{ 'selected' if task.status == 'in_progress' else '' }}>In Corso</option>
+                                    <option value="completed" {{ 'selected' if task.status == 'completed' else '' }}>Completato</option>
+                                    <option value="cancelled" {{ 'selected' if task.status == 'cancelled' else '' }}>Annullato</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Riassegna a:</label>
+                                <input type="text" name="assigned_to" class="form-control" value="{{ task.assigned_to }}" placeholder="Nome utente">
+                            </div>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn btn-success">Salva Modifiche</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

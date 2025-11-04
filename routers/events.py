@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from schemas.event import Event as EventSchema, EventCreate, EventUpdate
 from models.event import Event
 from models.group import Group
 from models.user import User
+from services.session import require_auth, get_session_user
 
 router = APIRouter()
 
@@ -24,9 +25,8 @@ async def get_events():
     } for e in events]
 
 @router.post("/", response_model=EventSchema)
-async def create_event(event: EventCreate):
+async def create_event(event: EventCreate, request: Request, user = Depends(require_auth)):
     group = Group.get_by_id(event.group_id)
-    user = User.get_by_id(1)  # Mock user
     
     new_event = Event.create(
         title=event.title,
@@ -72,9 +72,12 @@ async def get_event(event_id: int):
         raise HTTPException(status_code=404, detail="Event not found")
 
 @router.delete("/{event_id}")
-async def delete_event(event_id: int):
+async def delete_event(event_id: int, request: Request, user = Depends(require_auth)):
     try:
         event = Event.get_by_id(event_id)
+        # Base può cancellare solo i suoi eventi, reviewer+ può cancellare tutti
+        if user.role == "base" and event.created_by.id != user.id:
+            raise HTTPException(status_code=403, detail="Non puoi cancellare eventi di altri utenti")
         event.delete_instance()
         return {"message": "Event deleted successfully"}
     except Event.DoesNotExist:

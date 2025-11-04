@@ -13,7 +13,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'ragazzi', -- admin, capi, staff, ragazzi
+    role VARCHAR(50) DEFAULT 'base', -- base, reviewer, admin
     group_id INTEGER REFERENCES groups(id),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -45,11 +45,6 @@ CREATE TABLE tasks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Inserimento dati di esempio
+-- Inserimento gruppo di default
 INSERT INTO groups (name, type, description) VALUES 
-('Clan Aquile', 'clan', 'Clan scout principale'),
-('Comunità Capi', 'comunita_capi', 'Comunità dei capi educatori');
-
-INSERT INTO users (email, name, hashed_password, role, group_id) VALUES 
-('admin@scout.it', 'Admin Scout', '$2b$12$hash', 'admin', 1),
-('capo@scout.it', 'Capo Gruppo', '$2b$12$hash', 'capi', 1);
+('Scout Planner', 'clan', 'Gruppo principale');

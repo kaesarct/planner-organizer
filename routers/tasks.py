@@ -1,54 +1,42 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from schemas.task import Task as TaskSchema, TaskCreate, TaskUpdate
 from models.task import Task
 from models.user import User
+from services.session import require_auth, require_reviewer, require_admin, get_session_user
 
 router = APIRouter()
 
-@router.get("/", response_model=List[TaskSchema])
+@router.get("/")
 async def get_tasks():
     tasks = Task.select()
     return [{
         "id": t.id,
         "title": t.title,
-        "description": t.description,
+        "description": t.description or "",
         "status": t.status,
         "priority": t.priority,
-        "due_date": t.due_date,
+        "due_date": t.due_date.isoformat() if t.due_date else None,
         "assigned_to": t.assigned_to.id,
         "created_by": t.created_by.id,
         "event_id": t.event.id if t.event else None,
-        "created_at": t.created_at
+        "visible": getattr(t, 'visible', True),
+        "created_at": t.created_at.isoformat()
     } for t in tasks]
 
-@router.post("/", response_model=TaskSchema)
-async def create_task(task: TaskCreate):
-    assigned_user = User.get_by_id(task.assigned_to)
-    creator = User.get_by_id(task.created_by)
-    
+@router.post("/")
+async def create_task(task: TaskCreate, request: Request, user = Depends(require_reviewer)):
     new_task = Task.create(
         title=task.title,
-        description=task.description,
+        description=task.description or "",
         priority=task.priority,
         due_date=task.due_date,
-        assigned_to=assigned_user.id,
-        created_by=creator.id,
-        event=task.event_id if hasattr(task, 'event_id') and task.event_id else None
+        assigned_to=task.assigned_to,
+        created_by=user.id,
+        visible=True
     )
     
-    return {
-        "id": new_task.id,
-        "title": new_task.title,
-        "description": new_task.description,
-        "status": new_task.status,
-        "priority": new_task.priority,
-        "due_date": new_task.due_date,
-        "assigned_to": new_task.assigned_to.id,
-        "created_by": new_task.created_by.id,
-        "event_id": new_task.event.id if new_task.event else None,
-        "created_at": new_task.created_at
-    }
+    return {"id": new_task.id, "message": "Task creato"}
 
 @router.get("/{task_id}", response_model=TaskSchema)
 async def get_task(task_id: int):
@@ -70,7 +58,7 @@ async def get_task(task_id: int):
         raise HTTPException(status_code=404, detail="Task not found")
 
 @router.put("/{task_id}", response_model=TaskSchema)
-async def update_task(task_id: int, task_update: TaskUpdate):
+async def update_task(task_id: int, task_update: TaskUpdate, request: Request, user = Depends(require_reviewer)):
     try:
         existing_task = Task.get_by_id(task_id)
         
@@ -102,8 +90,20 @@ async def update_task(task_id: int, task_update: TaskUpdate):
     except Task.DoesNotExist:
         raise HTTPException(status_code=404, detail="Task not found")
 
+
+
+@router.post("/{task_id}/toggle-visibility")
+async def toggle_task_visibility(task_id: int, request: Request, user = Depends(require_admin)):
+    try:
+        task = Task.get_by_id(task_id)
+        task.visible = not task.visible
+        task.save()
+        return {"message": f"Task {'mostrato' if task.visible else 'nascosto'} con successo"}
+    except Task.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Task not found")
+
 @router.delete("/{task_id}")
-async def delete_task(task_id: int):
+async def delete_task(task_id: int, request: Request, user = Depends(require_admin)):
     try:
         task = Task.get_by_id(task_id)
         task.delete_instance()

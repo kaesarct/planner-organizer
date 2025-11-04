@@ -10,8 +10,6 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     assigned_to: int
-    created_by: int
-    event_id: Optional[int] = None
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
@@ -26,6 +24,7 @@ class Task(TaskBase):
     assigned_to: int
     created_by: int
     event_id: Optional[int] = None
+    visible: bool = True
     created_at: datetime
     
     class Config:

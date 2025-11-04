@@ -1,10 +1,18 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth, events, tasks, users, groups
 from init_db import create_tables
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_tables()
+    yield
+    # Shutdown (se necessario)
+
 # API Server separato (solo JSON)
-api_app = FastAPI(title="Scout Planner API", version="1.0.0")
+api_app = FastAPI(title="Scout Planner API", version="1.0.0", lifespan=lifespan)
 
 # Configura CORS per permettere chiamate dal frontend
 api_app.add_middleware(
@@ -15,9 +23,6 @@ api_app.add_middleware(
     allow_headers=["*"],
 )
 
-@api_app.on_event("startup")
-async def startup_event():
-    create_tables()
 
 # API routes (JSON only)
 api_app.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -25,6 +30,7 @@ api_app.include_router(users.router, prefix="/users", tags=["users"])
 api_app.include_router(groups.router, prefix="/groups", tags=["groups"])
 api_app.include_router(events.router, prefix="/events", tags=["events"])
 api_app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+
 
 @api_app.get("/")
 def api_root():

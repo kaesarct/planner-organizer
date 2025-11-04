@@ -1,40 +1,56 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
+<script>
+  // Redirect al dashboard se già autenticato
+  if (localStorage.getItem("token")) {
+    window.location.href = "/dashboard";
+  } else {
+    // Controlla se è il primo utente
+    fetch("/auth/check-first-user")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.is_first_user) {
+          window.location.href = "/register";
+        }
+      })
+      .catch(() => {});
+  }
+</script>
 <div class="row">
-    <div class="col-12 text-center">
-        <h1 class="display-4 text-success mb-4">🏕️ Scout Planner</h1>
-        <p class="lead">Gestione eventi, task e documenti per comunità scout AGESCI</p>
-        
-        <div class="row mt-5">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">📅 Eventi</h5>
-                        <p class="card-text">Gestisci riunioni, uscite e campi</p>
-                        <a href="/events" class="btn btn-success">Vai agli Eventi</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">✅ Task</h5>
-                        <p class="card-text">Assegna e monitora i compiti</p>
-                        <a href="/tasks" class="btn btn-success">Vai ai Task</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">📊 Dashboard</h5>
-                        <p class="card-text">Panoramica e statistiche</p>
-                        <a href="/dashboard" class="btn btn-success">Dashboard</a>
-                    </div>
-                </div>
-            </div>
+  <div class="col-12 text-center">
+    <h1 class="display-4 text-success mb-4">🏕️ Scout Planner</h1>
+    <p class="lead">
+      Gestione eventi, task e documenti per comunità scout AGESCI
+    </p>
+
+    <div class="row mt-5">
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">📅 Eventi</h5>
+            <p class="card-text">Gestisci riunioni, uscite e campi</p>
+            <a href="/events" class="btn btn-success">Vai agli Eventi</a>
+          </div>
         </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">✅ Task</h5>
+            <p class="card-text">Assegna e monitora i compiti</p>
+            <a href="/tasks" class="btn btn-success">Vai ai Task</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">📊 Dashboard</h5>
+            <p class="card-text">Panoramica e statistiche</p>
+            <a href="/dashboard" class="btn btn-success">Dashboard</a>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

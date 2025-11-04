@@ -13,7 +13,7 @@ function showAlert(message, type = 'success') {
     setTimeout(() => alert.remove(), 5000);
 }
 
-// API helper
+// API helper semplificato
 async function apiCall(url, options = {}) {
     try {
         const response = await fetch(url, {
@@ -21,11 +21,18 @@ async function apiCall(url, options = {}) {
                 'Content-Type': 'application/json',
                 ...options.headers
             },
+            credentials: 'same-origin',
             ...options
         });
         
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+        
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            const error = await response.json();
+            throw new Error(error.detail || `HTTP ${response.status}`);
         }
         
         return await response.json();
@@ -34,6 +41,8 @@ async function apiCall(url, options = {}) {
         throw error;
     }
 }
+
+
 
 // Form helpers
 function getFormData(formId) {

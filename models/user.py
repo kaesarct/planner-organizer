@@ -12,7 +12,7 @@ class User(BaseModel):
     email = CharField(unique=True, index=True)
     name = CharField()
     hashed_password = CharField()
-    role = CharField(default="ragazzi")  # admin, capi, staff, ragazzi
+    role = CharField(default="base")  # base, reviewer, admin
     group = ForeignKeyField(Group, backref='users', null=True)
     is_active = BooleanField(default=True)
     created_at = DateTimeField(default=datetime.now)
