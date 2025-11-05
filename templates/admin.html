@@ -66,6 +66,7 @@
                             <th>Titolo</th>
                             <th>Priorità</th>
                             <th>Status</th>
+                            <th>Assegnato a</th>
                             <th>Visibile</th>
                             <th>Azioni</th>
                         </tr>
@@ -90,6 +91,9 @@
                                 </span>
                             </td>
                             <td>
+                                <small class="text-muted">{{ task.assigned_to or 'Non assegnato' }}</small>
+                            </td>
+                            <td>
                                 <span class="badge bg-{{ 'success' if task.visible else 'danger' }}">
                                     {{ '👁️ Visibile' if task.visible else '🙈 Nascosto' }}
                                 </span>
@@ -110,4 +114,14 @@
         </div>
     </div>
 </div>
+
+<script>
+// Mantieni la scheda attiva dopo il reload
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#tasks') {
+        const tasksTab = new bootstrap.Tab(document.getElementById('tasks-admin-tab'));
+        tasksTab.show();
+    }
+});
+</script>
 {% endblock %}

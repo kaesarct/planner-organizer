@@ -10,7 +10,7 @@ class Task(BaseModel):
     status = CharField(default="pending")  # pending, in_progress, completed
     priority = CharField(default="medium")  # low, medium, high
     due_date = DateTimeField(null=True)
-    assigned_to = ForeignKeyField(User, backref='assigned_tasks')
+    assigned_to = ForeignKeyField(User, backref='assigned_tasks', null=True)
     created_by = ForeignKeyField(User, backref='created_tasks')
     event = ForeignKeyField(Event, backref='tasks', null=True)
     visible = BooleanField(default=True)

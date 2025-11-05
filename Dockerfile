@@ -8,6 +8,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000 8001
+EXPOSE 8000 5678
 
-CMD ["python", "main.py"]
+CMD ["python", "-u", "-m", "ptvsd", "--host", "0.0.0.0", "--port", "5678", "main.py"]

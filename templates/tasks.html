@@ -1,132 +1,286 @@
-{% extends "base.html" %}
-
-{% block title %}Task - Scout Planner{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Task - Scout Planner{% endblock %} {%
+block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>✅ Task Board</h2>
+  <h2>✅ Task Board</h2>
+  {% if user.role in ['admin', 'reviewer'] %}
+  <button
+    class="btn btn-success"
+    data-bs-toggle="modal"
+    data-bs-target="#taskModal"
+    onclick="createTask()"
+  >
+    + Nuovo Task
+  </button>
+  {% endif %}
 </div>
 
 <!-- Kanban Board -->
 <div class="row">
-    <div class="col-3">
-        <div class="card h-100">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">📋 Da Fare</h5>
-                <small>{{ tasks|selectattr("status", "equalto", "pending")|list|length }} task</small>
+  <div class="col-3">
+    <div class="card h-100">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">📋 Da Fare</h5>
+        <small
+          >{{ tasks|selectattr("status", "equalto", "pending")|list|length }}
+          task</small
+        >
+      </div>
+      <div class="card-body" style="min-height: 400px">
+        {% for task in tasks %} {% if task.status == "pending" and
+        task.get('visible', True) %}
+        <div
+          class="card mb-2 task-card"
+          data-bs-toggle="modal"
+          data-bs-target="#taskModal"
+          onclick="loadTask({{ task.id }})"
+        >
+          <div class="card-body p-3">
+            <h6 class="card-title">{{ task.title }}</h6>
+            {% if task.description %}
+            <p class="card-text small text-muted">
+              {{ task.description[:50] }}{% if task.description|length > 50
+              %}...{% endif %}
+            </p>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center">
+              <span
+                class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
+              >
+                {{ task.priority }}
+              </span>
+              <small class="text-muted"
+                >{{ task.assigned_to or 'Non assegnato' }}</small
+              >
             </div>
-            <div class="card-body" style="min-height: 400px;">
-                {% for task in tasks %}
-                    {% if task.status == "pending" %}
-                        <a href="/task/{{ task.id }}" class="text-decoration-none">
-                            <div class="card mb-2 task-card">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-dark">{{ task.title }}</h6>
-                                    {% if task.description %}
-                                        <p class="card-text small text-muted">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</p>
-                                    {% endif %}
-                                    <span class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}">
-                                        {{ task.priority }}
-                                    </span>
-                                </div>
-                            </div>
-                        </a>
-                    {% endif %}
-                {% endfor %}
-            </div>
+          </div>
         </div>
+        {% endif %} {% endfor %}
+      </div>
     </div>
-    
-    <div class="col-3">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">⚙️ In Corso</h5>
-                <small>{{ tasks|selectattr("status", "equalto", "in_progress")|list|length }} task</small>
+  </div>
+
+  <div class="col-3">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">⚙️ In Corso</h5>
+        <small
+          >{{ tasks|selectattr("status", "equalto", "in_progress")|list|length
+          }} task</small
+        >
+      </div>
+      <div class="card-body" style="min-height: 400px">
+        {% for task in tasks %} {% if task.status == "in_progress" and
+        task.get('visible', True) %}
+        <div
+          class="card mb-2 task-card"
+          data-bs-toggle="modal"
+          data-bs-target="#taskModal"
+          onclick="loadTask({{ task.id }})"
+        >
+          <div class="card-body p-3">
+            <h6 class="card-title">{{ task.title }}</h6>
+            {% if task.description %}
+            <p class="card-text small text-muted">
+              {{ task.description[:50] }}{% if task.description|length > 50
+              %}...{% endif %}
+            </p>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center">
+              <span
+                class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
+              >
+                {{ task.priority }}
+              </span>
+              <small class="text-muted"
+                >{{ task.assigned_to or 'Non assegnato' }}</small
+              >
             </div>
-            <div class="card-body" style="min-height: 400px;">
-                {% for task in tasks %}
-                    {% if task.status == "in_progress" %}
-                        <a href="/task/{{ task.id }}" class="text-decoration-none">
-                            <div class="card mb-2 task-card">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-dark">{{ task.title }}</h6>
-                                    {% if task.description %}
-                                        <p class="card-text small text-muted">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</p>
-                                    {% endif %}
-                                    <span class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}">
-                                        {{ task.priority }}
-                                    </span>
-                                </div>
-                            </div>
-                        </a>
-                    {% endif %}
-                {% endfor %}
-            </div>
+          </div>
         </div>
+        {% endif %} {% endfor %}
+      </div>
     </div>
-    
-    <div class="col-3">
-        <div class="card h-100">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">✅ Completati</h5>
-                <small>{{ tasks|selectattr("status", "equalto", "completed")|list|length }} task</small>
+  </div>
+
+  <div class="col-3">
+    <div class="card h-100">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">✅ Completati</h5>
+        <small
+          >{{ tasks|selectattr("status", "equalto", "completed")|list|length }}
+          task</small
+        >
+      </div>
+      <div class="card-body" style="min-height: 400px">
+        {% for task in tasks %} {% if task.status == "completed" and
+        task.get('visible', True) %}
+        <div
+          class="card mb-2 task-card"
+          data-bs-toggle="modal"
+          data-bs-target="#taskModal"
+          onclick="loadTask({{ task.id }})"
+        >
+          <div class="card-body p-3">
+            <h6 class="card-title">{{ task.title }}</h6>
+            {% if task.description %}
+            <p class="card-text small text-muted">
+              {{ task.description[:50] }}{% if task.description|length > 50
+              %}...{% endif %}
+            </p>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center">
+              <span
+                class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
+              >
+                {{ task.priority }}
+              </span>
+              <small class="text-muted"
+                >{{ task.assigned_to or 'Non assegnato' }}</small
+              >
             </div>
-            <div class="card-body" style="min-height: 400px;">
-                {% for task in tasks %}
-                    {% if task.status == "completed" %}
-                        <a href="/task/{{ task.id }}" class="text-decoration-none">
-                            <div class="card mb-2 task-card">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-dark">{{ task.title }}</h6>
-                                    {% if task.description %}
-                                        <p class="card-text small text-muted">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</p>
-                                    {% endif %}
-                                    <span class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}">
-                                        {{ task.priority }}
-                                    </span>
-                                </div>
-                            </div>
-                        </a>
-                    {% endif %}
-                {% endfor %}
-            </div>
+          </div>
         </div>
+        {% endif %} {% endfor %}
+      </div>
     </div>
-    
-    <div class="col-3">
-        <div class="card h-100">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0">❌ Annullati</h5>
-                <small>{{ tasks|selectattr("status", "equalto", "cancelled")|list|length }} task</small>
+  </div>
+
+  <div class="col-3">
+    <div class="card h-100">
+      <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">❌ Annullati</h5>
+        <small
+          >{{ tasks|selectattr("status", "equalto", "cancelled")|list|length }}
+          task</small
+        >
+      </div>
+      <div class="card-body" style="min-height: 400px">
+        {% for task in tasks %} {% if task.status == "cancelled" and
+        task.get('visible', True) %}
+        <div
+          class="card mb-2 task-card"
+          data-bs-toggle="modal"
+          data-bs-target="#taskModal"
+          onclick="loadTask({{ task.id }})"
+        >
+          <div class="card-body p-3">
+            <h6 class="card-title">{{ task.title }}</h6>
+            {% if task.description %}
+            <p class="card-text small text-muted">
+              {{ task.description[:50] }}{% if task.description|length > 50
+              %}...{% endif %}
+            </p>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center">
+              <span
+                class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
+              >
+                {{ task.priority }}
+              </span>
+              <small class="text-muted"
+                >{{ task.assigned_to or 'Non assegnato' }}</small
+              >
             </div>
-            <div class="card-body" style="min-height: 400px;">
-                {% for task in tasks %}
-                    {% if task.status == "cancelled" %}
-                        <a href="/task/{{ task.id }}" class="text-decoration-none">
-                            <div class="card mb-2 task-card">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-dark">{{ task.title }}</h6>
-                                    {% if task.description %}
-                                        <p class="card-text small text-muted">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</p>
-                                    {% endif %}
-                                    <span class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}">
-                                        {{ task.priority }}
-                                    </span>
-                                </div>
-                            </div>
-                        </a>
-                    {% endif %}
-                {% endfor %}
-            </div>
+          </div>
         </div>
+        {% endif %} {% endfor %}
+      </div>
     </div>
+  </div>
 </div>
 
-<style>
-.task-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    transition: all 0.2s;
-}
-</style>
+<!-- Unified Task Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskTitle">Task</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form method="post" id="taskForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Titolo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="modalTitle"
+              name="title"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descrizione</label>
+            <textarea
+              class="form-control"
+              id="modalDescription"
+              name="description"
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Stato</label>
+            <select class="form-select" name="status" id="modalStatus">
+              <option value="pending">Da Fare</option>
+              <option value="in_progress">In Corso</option>
+              <option value="completed">Completato</option>
+              <option value="cancelled">Annullato</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Priorità</label>
+            <select class="form-select" name="priority" id="modalPriority">
+              <option value="low">Bassa</option>
+              <option value="medium">Media</option>
+              <option value="high">Alta</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Assegnato a</label>
+            <select class="form-select" id="modalAssigned" name="assigned_to">
+              <option value="">Nessuno</option>
+              {% for user_item in users %}
+              <option value="{{ user_item.id }}">{{ user_item.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Chiudi
+          </button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            Salva
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/tasks.js"></script>
+<script>
+  window.userRole = '{{ user.role }}';
+  setTaskData({
+      {% for task in tasks %}
+      {{ task.id }}: {
+          id: {{ task.id }},
+          title: '{{ task.title|replace("'", "\\'") }}',
+          description: '{{ (task.description or "")|replace("'", "\\'") }}',
+          status: '{{ task.status }}',
+          priority: '{{ task.priority }}',
+          assigned_to: '{{ task.assigned_to or "" }}',
+          assigned_to_id: '{{ task.assigned_to_id or "" }}'
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+  });
+</script>
 {% endblock %}

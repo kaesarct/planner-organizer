@@ -90,6 +90,67 @@ async def update_task(task_id: int, task_update: TaskUpdate, request: Request, u
     except Task.DoesNotExist:
         raise HTTPException(status_code=404, detail="Task not found")
 
+@router.post("/{task_id}/update")
+async def update_task_form(task_id: int, request: Request, user = Depends(require_reviewer)):
+    from fastapi.responses import RedirectResponse
+    
+    form = await request.form()
+    
+    try:
+        task = Task.get_by_id(task_id)
+        
+        if "status" in form and user.role in ["reviewer", "admin"]:
+            task.status = form["status"]
+        
+        if "priority" in form and user.role == "admin":
+            task.priority = form["priority"]
+            
+        if "assigned_to" in form and user.role == "admin":
+            assigned_to_value = form["assigned_to"]
+            if assigned_to_value and assigned_to_value.strip():
+                task.assigned_to = int(assigned_to_value)
+            else:
+                task.assigned_to = None
+        
+        task.save()
+    except Task.DoesNotExist:
+        pass
+    
+    return RedirectResponse(url="/tasks", status_code=302)
+
+@router.put("/{task_id}_old", response_model=TaskSchema)
+async def update_task_old(task_id: int, task_update: TaskUpdate, request: Request, user = Depends(require_reviewer)):
+    try:
+        existing_task = Task.get_by_id(task_id)
+        
+        if task_update.title is not None:
+            existing_task.title = task_update.title
+        if task_update.description is not None:
+            existing_task.description = task_update.description
+        if task_update.status is not None:
+            existing_task.status = task_update.status
+        if task_update.priority is not None:
+            existing_task.priority = task_update.priority
+        if task_update.due_date is not None:
+            existing_task.due_date = task_update.due_date
+            
+        existing_task.save()
+        
+        return {
+            "id": existing_task.id,
+            "title": existing_task.title,
+            "description": existing_task.description,
+            "status": existing_task.status,
+            "priority": existing_task.priority,
+            "due_date": existing_task.due_date,
+            "assigned_to": existing_task.assigned_to.id,
+            "created_by": existing_task.created_by.id,
+            "event_id": existing_task.event.id if existing_task.event else None,
+            "created_at": existing_task.created_at
+        }
+    except Task.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Task not found")
+
 
 
 @router.post("/{task_id}/toggle-visibility")

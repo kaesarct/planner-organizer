@@ -39,7 +39,7 @@ CREATE TABLE tasks (
     status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, completed
     priority VARCHAR(50) DEFAULT 'medium', -- low, medium, high
     due_date TIMESTAMP,
-    assigned_to INTEGER REFERENCES users(id),
+    assigned_to INTEGER REFERENCES users(id) NULL,
     created_by INTEGER REFERENCES users(id),
     event_id INTEGER REFERENCES events(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

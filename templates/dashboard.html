@@ -7,34 +7,34 @@
 
 <div class="row">
     <div class="col-md-3">
-        <div class="card text-white bg-success">
+        <div class="card text-white bg-primary">
             <div class="card-body">
-                <h5 class="card-title">Eventi Attivi</h5>
-                <h2 id="active-events">0</h2>
+                <h5 class="card-title">I Miei Task</h5>
+                <h2>{{ my_tasks|length }}</h2>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card text-white bg-warning">
             <div class="card-body">
-                <h5 class="card-title">Task Pending</h5>
-                <h2 id="pending-tasks">0</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">Utenti Attivi</h5>
-                <h2 id="active-users">0</h2>
+                <h5 class="card-title">In Corso</h5>
+                <h2>{{ my_tasks|selectattr("status", "equalto", "in_progress")|list|length }}</h2>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card text-white bg-secondary">
             <div class="card-body">
-                <h5 class="card-title">Gruppi</h5>
-                <h2 id="total-groups">2</h2>
+                <h5 class="card-title">Da Fare</h5>
+                <h2>{{ my_tasks|selectattr("status", "equalto", "pending")|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Completati</h5>
+                <h2>{{ my_tasks|selectattr("status", "equalto", "completed")|list|length }}</h2>
             </div>
         </div>
     </div>
@@ -54,10 +54,54 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5>Task Urgenti</h5>
+                <h5>I Miei Task</h5>
             </div>
-            <div class="card-body" id="urgent-tasks">
-                <!-- Task caricati dinamicamente -->
+            <div class="card-body">
+                {% if my_tasks %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Titolo</th>
+                                <th>Priorità</th>
+                                <th>Stato</th>
+                                <th>Scadenza</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in my_tasks[:10] %}
+                            <tr>
+                                <td>
+                                    <strong>{{ task.title }}</strong>
+                                    {% if task.description %}
+                                        <br><small class="text-muted">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}">
+                                        {{ 'Alta' if task.priority == 'high' else 'Media' if task.priority == 'medium' else 'Bassa' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if task.status == 'in_progress' else 'secondary' if task.status == 'pending' else 'success' if task.status == 'completed' else 'danger' }}">
+                                        {{ 'In Corso' if task.status == 'in_progress' else 'Da Fare' if task.status == 'pending' else 'Completato' if task.status == 'completed' else 'Annullato' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if task.due_date %}
+                                        <small class="text-muted">{{ task.due_date.strftime('%d/%m/%Y') if task.due_date else '-' }}</small>
+                                    {% else %}
+                                        <small class="text-muted">-</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Nessun task assegnato</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -65,68 +109,32 @@
 
 <script>
 async function loadDashboard() {
-    // Carica statistiche
-    const events = await fetch('http://localhost:8001/events').then(r => r.json());
-    const tasks = await fetch('http://localhost:8001/tasks').then(r => r.json());
-    
-    // Aggiorna contatori
-    document.getElementById('active-events').textContent = events.length;
-    document.getElementById('pending-tasks').textContent = tasks.length;
-    document.getElementById('active-users').textContent = '12'; // Mock
-    
-    // Prossimi eventi (prossimi 5)
-    const now = new Date();
-    const upcomingEvents = events
-        .filter(event => new Date(event.start_date) >= now)
-        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
-        .slice(0, 5);
-    
-    const upcomingContainer = document.getElementById('upcoming-events');
-    if (upcomingEvents.length > 0) {
-        upcomingContainer.innerHTML = upcomingEvents.map(event => `
-            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-start border-3 border-success">
-                <div>
-                    <strong>${event.title}</strong><br>
-                    <small class="text-muted">${formatDashboardDate(event.start_date)}</small>
-                </div>
-                <span class="badge bg-primary">${event.type}</span>
-            </div>
-        `).join('');
-    } else {
-        upcomingContainer.innerHTML = '<p class="text-muted">Nessun evento in programma</p>';
-    }
-    
-    // Task urgenti (scadenza entro 7 giorni)
-    const urgentDeadline = new Date();
-    urgentDeadline.setDate(urgentDeadline.getDate() + 7);
-    
-    const urgentTasks = tasks
-        .filter(task => {
-            if (!task.due_date || task.status === 'completed') return false;
-            const dueDate = new Date(task.due_date);
-            return dueDate <= urgentDeadline && dueDate >= now;
-        })
-        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
-        .slice(0, 5);
-    
-    const urgentContainer = document.getElementById('urgent-tasks');
-    if (urgentTasks.length > 0) {
-        urgentContainer.innerHTML = urgentTasks.map(task => {
-            const priority = task.priority || 'medium';
-            const priorityColor = priority === 'high' ? 'danger' : priority === 'medium' ? 'warning' : 'secondary';
-            
-            return `
-                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-start border-3 border-${priorityColor}">
+    try {
+        const events = await fetch('/api/events').then(r => r.json());
+        
+        // Prossimi eventi (prossimi 5)
+        const now = new Date();
+        const upcomingEvents = events
+            .filter(event => new Date(event.start_date) >= now)
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+            .slice(0, 5);
+        
+        const upcomingContainer = document.getElementById('upcoming-events');
+        if (upcomingEvents.length > 0) {
+            upcomingContainer.innerHTML = upcomingEvents.map(event => `
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-start border-3 border-success">
                     <div>
-                        <strong>${task.title}</strong><br>
-                        <small class="text-muted">Scadenza: ${formatDashboardDate(task.due_date)}</small>
+                        <strong>${event.title}</strong><br>
+                        <small class="text-muted">${formatDashboardDate(event.start_date)}</small>
                     </div>
-                    <span class="badge bg-${priorityColor}">${priority}</span>
+                    <span class="badge bg-primary">${event.type}</span>
                 </div>
-            `;
-        }).join('');
-    } else {
-        urgentContainer.innerHTML = '<p class="text-muted">Nessun task urgente</p>';
+            `).join('');
+        } else {
+            upcomingContainer.innerHTML = '<p class="text-muted">Nessun evento in programma</p>';
+        }
+    } catch (error) {
+        document.getElementById('upcoming-events').innerHTML = '<p class="text-muted">Errore caricamento eventi</p>';
     }
 }
 
