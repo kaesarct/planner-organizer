@@ -16,26 +16,32 @@ function openTaskModal(id = null) {
         document.getElementById('modalDescription').value = task.description;
         document.getElementById('modalStatus').value = task.status;
         document.getElementById('modalPriority').value = task.priority;
+        document.getElementById('modalDueDate').value = task.due_date || '';
         document.getElementById('modalAssigned').value = task.assigned_to_id;
+        
+
         document.getElementById('taskTitle').textContent = 'Modifica Task';
-        document.getElementById('taskForm').action = `/api/tasks/${id}/update`;
+        document.getElementById('taskForm').action = `/task/${id}/update`;
         document.getElementById('saveBtn').textContent = 'Salva';
         document.getElementById('saveBtn').className = 'btn btn-primary';
         
         const userRole = window.userRole;
+        const permissions = window.permissions || {};
         const canEdit = userRole === 'reviewer' || userRole === 'admin';
         
-        document.getElementById('modalTitle').readOnly = true;
-        document.getElementById('modalDescription').readOnly = true;
-        document.getElementById('modalStatus').disabled = !canEdit;
-        document.getElementById('modalPriority').disabled = userRole !== 'admin';
-        document.getElementById('modalAssigned').disabled = userRole !== 'admin';
+        document.getElementById('modalTitle').readOnly = !permissions.title;
+        document.getElementById('modalDescription').readOnly = !permissions.description;
+        document.getElementById('modalStatus').disabled = !permissions.status;
+        document.getElementById('modalPriority').disabled = !permissions.priority;
+        document.getElementById('modalDueDate').readOnly = !permissions.due_date;
+        document.getElementById('modalAssigned').disabled = !permissions.assigned_to;
         document.getElementById('saveBtn').style.display = canEdit ? 'block' : 'none';
     } else {
         document.getElementById('modalTitle').value = '';
         document.getElementById('modalDescription').value = '';
         document.getElementById('modalStatus').value = 'pending';
         document.getElementById('modalPriority').value = 'medium';
+        document.getElementById('modalDueDate').value = '';
         document.getElementById('modalAssigned').value = '';
         document.getElementById('taskTitle').textContent = 'Crea Task';
         document.getElementById('taskForm').action = '/task/create';
@@ -46,6 +52,7 @@ function openTaskModal(id = null) {
         document.getElementById('modalDescription').readOnly = false;
         document.getElementById('modalStatus').disabled = false;
         document.getElementById('modalPriority').disabled = false;
+        document.getElementById('modalDueDate').readOnly = false;
         document.getElementById('modalAssigned').disabled = false;
         document.getElementById('saveBtn').style.display = 'block';
     }

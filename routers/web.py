@@ -22,10 +22,25 @@ def register_page(request: Request):
 
 @router.get("/admin")
 def admin_page(request: Request, user=Depends(require_admin)):
+    from datetime import date
+    from services.permissions import get_permissions, init_permissions
+    
+    today = date.today()
+    
+    # Inizializza permessi se non esistono
+    init_permissions()
+    
     # Carica dati per admin
     users = User.select()
     tasks = Task.select()
     events = Event.select()
+    
+    # Carica permessi
+    permissions = {
+        'base': get_permissions('base'),
+        'reviewer': get_permissions('reviewer'),
+        'admin': get_permissions('admin')
+    }
 
     user_list = [
         {
@@ -72,6 +87,8 @@ def admin_page(request: Request, user=Depends(require_admin)):
             "users": user_list,
             "tasks": task_list,
             "events": event_list,
+            "today": today,
+            "permissions": permissions,
         },
     )
 
@@ -90,6 +107,48 @@ def toggle_task_visibility(task_id: int, request: Request, user=Depends(require_
         pass
 
     return RedirectResponse(url="/admin#tasks", status_code=302)
+
+
+@router.post("/admin/toggle-user/{user_id}")
+def toggle_user_status(user_id: int, request: Request, admin_user=Depends(require_admin)):
+    try:
+        user = User.get_by_id(user_id)
+        user.is_active = not user.is_active
+        user.save()
+    except User.DoesNotExist:
+        pass
+    return RedirectResponse(url="/admin", status_code=302)
+
+
+@router.post("/admin/change-role/{user_id}")
+async def change_user_role(user_id: int, request: Request, admin_user=Depends(require_admin)):
+    form = await request.form()
+    try:
+        user = User.get_by_id(user_id)
+        user.role = form["role"]
+        user.save()
+    except User.DoesNotExist:
+        pass
+    return RedirectResponse(url="/admin", status_code=302)
+
+
+@router.post("/admin/delete-user/{user_id}")
+def delete_user(user_id: int, request: Request, admin_user=Depends(require_admin)):
+    try:
+        user = User.get_by_id(user_id)
+        # Non permettere di eliminare se stesso
+        if user.id != admin_user.id:
+            user.delete_instance()
+    except User.DoesNotExist:
+        pass
+    return RedirectResponse(url="/admin", status_code=302)
+
+
+@router.post("/admin/toggle-permission/{role}/{field}")
+def toggle_permission(role: str, field: str, request: Request, admin_user=Depends(require_admin)):
+    from services.permissions import toggle_permission as toggle_perm
+    toggle_perm(role, field)
+    return RedirectResponse(url="/admin#permissions", status_code=302)
 
 
 @router.get("/dashboard")
@@ -159,6 +218,13 @@ def tasks_page(request: Request):
     if not user:
         return templates.TemplateResponse("login.html", {"request": request})
 
+    from datetime import date
+    from services.permissions import get_permissions, init_permissions
+    
+    today = date.today()
+    init_permissions()
+    permissions = get_permissions(user.role)
+
     # Carica task dal database
     tasks = Task.select()
     task_list = []
@@ -188,7 +254,7 @@ def tasks_page(request: Request):
 
     return templates.TemplateResponse(
         "tasks.html",
-        {"request": request, "user": user, "tasks": task_list, "users": user_list},
+        {"request": request, "user": user, "tasks": task_list, "users": user_list, "today": today, "permissions": permissions},
     )
 
 
@@ -206,18 +272,40 @@ async def update_task(task_id: int, request: Request):
     try:
         task = Task.get_by_id(task_id)
 
-        if "status" in form and user.role in ["reviewer", "admin"]:
+        from services.permissions import can_edit_field
+        
+        if "title" in form and can_edit_field(user.role, "title"):
+            task.title = form["title"]
+        
+        if "description" in form and can_edit_field(user.role, "description"):
+            task.description = form["description"]
+
+        if "status" in form and can_edit_field(user.role, "status"):
             task.status = form["status"]
 
-        if "priority" in form and user.role == "admin":
+        if "priority" in form and can_edit_field(user.role, "priority"):
             task.priority = form["priority"]
+        
+        if "due_date" in form and can_edit_field(user.role, "due_date"):
+            due_date_value = form["due_date"]
+            if due_date_value and due_date_value.strip():
+                from datetime import datetime
+                task.due_date = datetime.strptime(due_date_value, "%Y-%m-%d")
+            else:
+                task.due_date = None
 
-        if "assigned_to" in form and user.role == "admin":
-            task.assigned_to = form["assigned_to"]
+        if "assigned_to" in form and can_edit_field(user.role, "assigned_to"):
+            assigned_value = form["assigned_to"]
+            if assigned_value and assigned_value.strip():
+                task.assigned_to = int(assigned_value)
+            else:
+                task.assigned_to = None
 
         task.save()
     except Task.DoesNotExist:
         pass
+    except Exception as e:
+        print(f"Error updating task: {e}")
 
     return RedirectResponse(url="/tasks", status_code=302)
 
@@ -235,12 +323,19 @@ async def create_task(request: Request):
         assigned_to_id = None
         if assigned_to_value and assigned_to_value.strip():
             assigned_to_id = int(assigned_to_value)
+        
+        due_date_value = form.get("due_date")
+        due_date = None
+        if due_date_value and due_date_value.strip():
+            from datetime import datetime
+            due_date = datetime.strptime(due_date_value, "%Y-%m-%d")
 
         task = Task.create(
             title=form["title"],
             description=form.get("description", ""),
             status=form["status"],
             priority=form["priority"],
+            due_date=due_date,
             assigned_to=assigned_to_id,
             created_by=user.id,
         )

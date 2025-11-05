@@ -42,7 +42,7 @@ block content %}
               %}...{% endif %}
             </p>
             {% endif %}
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
               <span
                 class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
               >
@@ -52,6 +52,11 @@ block content %}
                 >{{ task.assigned_to or 'Non assegnato' }}</small
               >
             </div>
+            {% if task.due_date %}
+            <small class="{% if task.due_date.date() < today %}text-danger fw-bold{% else %}text-muted{% endif %}">
+              📅 {{ task.due_date.strftime('%d/%m/%Y') }}
+            </small>
+            {% endif %}
           </div>
         </div>
         {% endif %} {% endfor %}
@@ -85,7 +90,7 @@ block content %}
               %}...{% endif %}
             </p>
             {% endif %}
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
               <span
                 class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
               >
@@ -95,6 +100,11 @@ block content %}
                 >{{ task.assigned_to or 'Non assegnato' }}</small
               >
             </div>
+            {% if task.due_date %}
+            <small class="{% if task.due_date.date() < today %}text-danger fw-bold{% else %}text-muted{% endif %}">
+              📅 {{ task.due_date.strftime('%d/%m/%Y') }}
+            </small>
+            {% endif %}
           </div>
         </div>
         {% endif %} {% endfor %}
@@ -128,7 +138,7 @@ block content %}
               %}...{% endif %}
             </p>
             {% endif %}
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
               <span
                 class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
               >
@@ -138,6 +148,11 @@ block content %}
                 >{{ task.assigned_to or 'Non assegnato' }}</small
               >
             </div>
+            {% if task.due_date %}
+            <small class="{% if task.due_date.date() < today %}text-danger fw-bold{% else %}text-muted{% endif %}">
+              📅 {{ task.due_date.strftime('%d/%m/%Y') }}
+            </small>
+            {% endif %}
           </div>
         </div>
         {% endif %} {% endfor %}
@@ -171,7 +186,7 @@ block content %}
               %}...{% endif %}
             </p>
             {% endif %}
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
               <span
                 class="badge bg-{{ 'danger' if task.priority == 'high' else 'warning' if task.priority == 'medium' else 'secondary' }}"
               >
@@ -181,6 +196,11 @@ block content %}
                 >{{ task.assigned_to or 'Non assegnato' }}</small
               >
             </div>
+            {% if task.due_date %}
+            <small class="{% if task.due_date.date() < today %}text-danger fw-bold{% else %}text-muted{% endif %}">
+              📅 {{ task.due_date.strftime('%d/%m/%Y') }}
+            </small>
+            {% endif %}
           </div>
         </div>
         {% endif %} {% endfor %}
@@ -211,6 +231,7 @@ block content %}
               id="modalTitle"
               name="title"
               required
+              {% if not permissions.get('title', False) %}readonly{% endif %}
             />
           </div>
           <div class="mb-3">
@@ -220,11 +241,12 @@ block content %}
               id="modalDescription"
               name="description"
               rows="3"
+              {% if not permissions.get('description', False) %}readonly{% endif %}
             ></textarea>
           </div>
           <div class="mb-3">
             <label class="form-label">Stato</label>
-            <select class="form-select" name="status" id="modalStatus">
+            <select class="form-select" name="status" id="modalStatus" {% if not permissions.get('status', False) %}disabled{% endif %}>
               <option value="pending">Da Fare</option>
               <option value="in_progress">In Corso</option>
               <option value="completed">Completato</option>
@@ -233,15 +255,19 @@ block content %}
           </div>
           <div class="mb-3">
             <label class="form-label">Priorità</label>
-            <select class="form-select" name="priority" id="modalPriority">
+            <select class="form-select" name="priority" id="modalPriority" {% if not permissions.get('priority', False) %}disabled{% endif %}>
               <option value="low">Bassa</option>
               <option value="medium">Media</option>
               <option value="high">Alta</option>
             </select>
           </div>
           <div class="mb-3">
+            <label class="form-label">Data di Scadenza</label>
+            <input type="date" class="form-control" name="due_date" id="modalDueDate" {% if not permissions.get('due_date', False) %}readonly{% endif %} min="{{ today }}" />
+          </div>
+          <div class="mb-3">
             <label class="form-label">Assegnato a</label>
-            <select class="form-select" id="modalAssigned" name="assigned_to">
+            <select class="form-select" name="assigned_to" id="modalAssigned" {% if not permissions.get('assigned_to', False) %}disabled{% endif %}>
               <option value="">Nessuno</option>
               {% for user_item in users %}
               <option value="{{ user_item.id }}">{{ user_item.name }}</option>
@@ -269,6 +295,7 @@ block content %}
 <script src="/static/js/tasks.js"></script>
 <script>
   window.userRole = '{{ user.role }}';
+  window.permissions = {{ permissions|tojson }};
   setTaskData({
       {% for task in tasks %}
       {{ task.id }}: {
@@ -277,6 +304,7 @@ block content %}
           description: '{{ (task.description or "")|replace("'", "\\'") }}',
           status: '{{ task.status }}',
           priority: '{{ task.priority }}',
+          due_date: '{{ task.due_date.strftime("%Y-%m-%d") if task.due_date else "" }}',
           assigned_to: '{{ task.assigned_to or "" }}',
           assigned_to_id: '{{ task.assigned_to_id or "" }}'
       }{% if not loop.last %},{% endif %}
