@@ -19,6 +19,8 @@ async def get_events():
         "start_date": e.start_date,
         "end_date": e.end_date,
         "location": e.location,
+        "location_lat": getattr(e, 'location_lat', None),
+        "location_lng": getattr(e, 'location_lng', None),
         "group_id": e.group.id,
         "created_by": e.created_by.id,
         "created_at": e.created_at
@@ -35,6 +37,8 @@ async def create_event(event: EventCreate, request: Request, user = Depends(requ
         start_date=event.start_date,
         end_date=event.end_date,
         location=event.location,
+        location_lat=getattr(event, 'location_lat', None),
+        location_lng=getattr(event, 'location_lng', None),
         group=group.id,
         created_by=user.id
     )
@@ -84,7 +88,7 @@ async def delete_event(event_id: int, request: Request, user = Depends(require_a
         raise HTTPException(status_code=404, detail="Event not found")
 
 @router.put("/{event_id}", response_model=EventSchema)
-async def update_event(event_id: int, event: EventUpdate):
+async def update_event(event_id: int, event: EventUpdate, request: Request, user = Depends(require_auth)):
     try:
         existing_event = Event.get_by_id(event_id)
         
@@ -101,6 +105,10 @@ async def update_event(event_id: int, event: EventUpdate):
             existing_event.end_date = event.end_date
         if event.location is not None:
             existing_event.location = event.location
+        if event.location_lat is not None:
+            existing_event.location_lat = event.location_lat
+        if event.location_lng is not None:
+            existing_event.location_lng = event.location_lng
             
         existing_event.save()
         

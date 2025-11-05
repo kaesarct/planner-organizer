@@ -41,6 +41,11 @@ def admin_page(request: Request, user=Depends(require_admin)):
         'reviewer': get_permissions('reviewer'),
         'admin': get_permissions('admin')
     }
+    
+    # Carica tipi evento
+    from models.event_type import EventType
+    event_types = EventType.select()
+    event_types_list = [{'id': et.id, 'name': et.name, 'color': et.color, 'is_active': et.is_active} for et in event_types]
 
     user_list = [
         {
@@ -89,6 +94,7 @@ def admin_page(request: Request, user=Depends(require_admin)):
             "events": event_list,
             "today": today,
             "permissions": permissions,
+            "event_types": event_types_list,
         },
     )
 
@@ -151,11 +157,52 @@ def toggle_permission(role: str, field: str, request: Request, admin_user=Depend
     return RedirectResponse(url="/admin#permissions", status_code=302)
 
 
+@router.post("/admin/delete-event/{event_id}")
+def delete_event(event_id: int, request: Request, admin_user=Depends(require_admin)):
+    try:
+        event = Event.get_by_id(event_id)
+        event.delete_instance()
+    except Event.DoesNotExist:
+        pass
+    return RedirectResponse(url="/admin#events", status_code=302)
+
+
+@router.post("/admin/toggle-event-type/{type_id}")
+def toggle_event_type(type_id: int, request: Request, admin_user=Depends(require_admin)):
+    from models.event_type import EventType
+    try:
+        event_type = EventType.get_by_id(type_id)
+        event_type.is_active = not event_type.is_active
+        event_type.save()
+    except EventType.DoesNotExist:
+        pass
+    return RedirectResponse(url="/admin#permissions", status_code=302)
+
+
+@router.post("/admin/add-event-type")
+async def add_event_type(request: Request, admin_user=Depends(require_admin)):
+    from models.event_type import EventType
+    form = await request.form()
+    try:
+        EventType.create(
+            name=form["name"],
+            color=form["color"],
+            is_active=True
+        )
+    except:
+        pass
+    return RedirectResponse(url="/admin#permissions", status_code=302)
+
+
 @router.get("/dashboard")
 def dashboard(request: Request):
     user = get_session_user(request)
     if not user:
         return templates.TemplateResponse("login.html", {"request": request})
+    
+    from services.permissions import get_permissions, init_permissions
+    init_permissions()
+    permissions = get_permissions(user.role)
     
     # Carica tutti i task per debug
     tasks = Task.select()
@@ -200,7 +247,7 @@ def dashboard(request: Request):
     print(f"DEBUG Dashboard: Final task_list has {len(task_list)} tasks")
     
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "user": user, "my_tasks": task_list}
+        "dashboard.html", {"request": request, "user": user, "my_tasks": task_list, "permissions": permissions}
     )
 
 
@@ -209,7 +256,12 @@ def events_page(request: Request):
     user = get_session_user(request)
     if not user:
         return templates.TemplateResponse("login.html", {"request": request})
-    return templates.TemplateResponse("events.html", {"request": request, "user": user})
+    
+    from services.permissions import get_permissions, init_permissions
+    init_permissions()
+    permissions = get_permissions(user.role)
+    
+    return templates.TemplateResponse("events.html", {"request": request, "user": user, "permissions": permissions})
 
 
 @router.get("/tasks")

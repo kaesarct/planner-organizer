@@ -25,9 +25,8 @@ function openTaskModal(id = null) {
         document.getElementById('saveBtn').textContent = 'Salva';
         document.getElementById('saveBtn').className = 'btn btn-primary';
         
-        const userRole = window.userRole;
         const permissions = window.permissions || {};
-        const canEdit = userRole === 'reviewer' || userRole === 'admin';
+        const canEdit = permissions.task_create_edit || false;
         
         document.getElementById('modalTitle').readOnly = !permissions.title;
         document.getElementById('modalDescription').readOnly = !permissions.description;

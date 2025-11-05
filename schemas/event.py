@@ -9,6 +9,8 @@ class EventBase(BaseModel):
     start_date: datetime
     end_date: datetime
     location: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
 
 class EventCreate(EventBase):
     group_id: int
@@ -20,6 +22,8 @@ class EventUpdate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     location: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
 
 class Event(EventBase):
     id: int
