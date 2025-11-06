@@ -10,18 +10,13 @@ service cloud.firestore {
     }
     
     function isReviewer() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'reviewer'];
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'reviewer'];
     }
     
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if isAdmin();
-    }
-    
-    match /groups/{groupId} {
-      allow read: if isAuthenticated();
-      allow write: if isReviewer();
     }
     
     match /events/{eventId} {

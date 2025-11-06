@@ -35,7 +35,9 @@
                             <h5>Accedi</h5>
                             <input type="email" id="login-email" class="form-control mb-2" placeholder="Email">
                             <input type="password" id="login-password" class="form-control mb-3" placeholder="Password">
-                            <button onclick="login()" class="btn btn-primary w-100">Accedi</button>
+                            <button onclick="login()" class="btn btn-primary w-100 mb-2">Accedi</button>
+                            <div class="text-center my-2">oppure</div>
+                            <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">🔴 Accedi con Google</button>
                             <p class="text-center mt-3">Non hai un account? <a href="#" onclick="toggleAuth()">Registrati</a></p>
                         </div>
                         <div id="register-form" style="display:none;">
@@ -43,7 +45,9 @@
                             <input type="text" id="register-name" class="form-control mb-2" placeholder="Nome">
                             <input type="email" id="register-email" class="form-control mb-2" placeholder="Email">
                             <input type="password" id="register-password" class="form-control mb-3" placeholder="Password">
-                            <button onclick="register()" class="btn btn-success w-100">Registrati</button>
+                            <button onclick="register()" class="btn btn-success w-100 mb-2">Registrati</button>
+                            <div class="text-center my-2">oppure</div>
+                            <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">🔴 Registrati con Google</button>
                             <p class="text-center mt-3">Hai già un account? <a href="#" onclick="toggleAuth()">Accedi</a></p>
                         </div>
                     </div>

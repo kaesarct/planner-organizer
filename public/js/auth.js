@@ -1,6 +1,6 @@
 import { auth, db, setCurrentUser } from './config.js';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, getDocs, addDoc, query, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 export function initAuth(onUserChange) {
     onAuthStateChanged(auth, async (user) => {
@@ -15,11 +15,11 @@ export function initAuth(onUserChange) {
             
             setCurrentUser(user);
             
-            const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-            if (userDoc.empty) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (!userDoc.exists()) {
                 const name = localStorage.getItem('pendingUserName') || 'Utente';
-                await addDoc(collection(db, 'users'), {
-                    uid: user.uid,
+                await setDoc(userDocRef, {
                     name: name,
                     email: user.email,
                     role: 'base',
@@ -28,9 +28,9 @@ export function initAuth(onUserChange) {
                 localStorage.removeItem('pendingUserName');
             }
             
-            const userDocRefresh = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-            if (!userDocRefresh.empty) {
-                const userData = userDocRefresh.docs[0].data();
+            const userDocRefresh = await getDoc(userDocRef);
+            if (userDocRefresh.exists()) {
+                const userData = userDocRefresh.data();
                 if (userData.role === 'admin') {
                     document.getElementById('nav-menu').innerHTML += '<li class="nav-item"><a class="nav-link" href="#" onclick="showPage(\'admin\')">Admin</a></li>';
                 }
@@ -83,4 +83,13 @@ window.toggleAuth = () => {
     const register = document.getElementById('register-form');
     login.style.display = login.style.display === 'none' ? 'block' : 'none';
     register.style.display = register.style.display === 'none' ? 'block' : 'none';
+};
+
+window.loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        alert('Errore login Google: ' + error.message);
+    }
 };

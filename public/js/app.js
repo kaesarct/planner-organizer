@@ -1,8 +1,9 @@
-import { initAuth } from './auth.js';
+import './auth.js';
 import { renderDashboard } from './dashboard.js';
 import { renderEvents, renderCalendar } from './events.js';
 import { renderTasks } from './tasks.js';
 import { renderAdmin } from './admin.js';
+import { initAuth } from './auth.js';
 
 initAuth(() => showPage('dashboard'));
 

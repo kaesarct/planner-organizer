@@ -122,14 +122,12 @@ window.showEventModal = async () => {
     document.getElementById('event-location-lat').value = '';
     document.getElementById('event-location-lng').value = '';
     const now = new Date();
-    now.setMinutes(0, 0, 0);
-    now.setHours(now.getHours() + 1);
-    const minDateTime = now.toISOString().slice(0, 16);
+    const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
     const startInput = document.getElementById('event-start');
     const endInput = document.getElementById('event-end');
-    startInput.min = minDateTime;
-    startInput.value = minDateTime;
-    const endTime = new Date(now.getTime() + 60 * 60 * 1000);
+    startInput.min = minDateTime.toISOString().slice(0, 16);
+    startInput.value = minDateTime.toISOString().slice(0, 16);
+    const endTime = new Date(minDateTime.getTime() + 60 * 60 * 1000);
     endInput.min = endTime.toISOString().slice(0, 16);
     endInput.value = endTime.toISOString().slice(0, 16);
     document.getElementById('eventModalTitle').textContent = 'Nuovo Evento';
