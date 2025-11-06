@@ -1,0 +1,61 @@
+:root {
+    --scout-green: #2E7D32;
+    --scout-brown: #8D6E63;
+    --scout-orange: #FF8F00;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.bg-scout {
+    background-color: var(--scout-green) !important;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.task-card {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.task-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: var(--scout-green);
+    border-color: var(--scout-green);
+}
+
+.btn-primary:hover {
+    background-color: #1B5E20;
+    border-color: #1B5E20;
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+}
+
+.table {
+    background: white;
+    border-radius: 8px;
+}
+
+.modal-content {
+    border-radius: 15px;
+}

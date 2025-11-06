@@ -1,63 +1,194 @@
-# Scout Planner
+# 🏕️ Clan Planner
 
-App web integrata per la gestione di eventi, task e documenti per comunità scout AGESCI.
+App web per la gestione di eventi e task per clan scout AGESCI su **Firebase**.
 
-## 🚀 Avvio con Docker
+## 🚀 Quick Start
 
+### 1. Setup Firebase
 ```bash
-docker-compose up --build
+npm install -g firebase-tools
+firebase login
 ```
 
-Accedi a: **http://localhost:8000**
+### 2. Configura progetto
+1. Vai su https://console.firebase.google.com
+2. Clicca "Aggiungi progetto"
+3. Nome: **clan-planner**
+4. Abilita Google Analytics (opzionale)
+
+### 3. Inizializza Firebase
+```bash
+firebase init
+```
+
+Seleziona:
+- ✅ Firestore
+- ✅ Hosting
+
+### 4. Ottieni configurazione Firebase
+1. Firebase Console > Impostazioni progetto
+2. Scorri fino a "Le tue app"
+3. Clicca sull'icona web `</>`
+4. Copia la configurazione e incolla in `public/js/app.js`
+
+### 5. Abilita Authentication
+1. Firebase Console > Authentication
+2. Clicca "Inizia"
+3. Abilita "Email/Password"
+4. Vai su Templates e configura email di verifica
+
+### 6. Deploy
+```bash
+firebase deploy
+```
+
+### 7. Accedi
+`https://clan-planner.web.app`
 
 ## 🏗️ Architettura
 
-- **Backend**: FastAPI + Jinja2 + SQLAlchemy + PostgreSQL
-- **Frontend**: HTML + Bootstrap + JavaScript (integrato)
-- **Database**: PostgreSQL
-- **Templates**: Jinja2 per rendering server-side
+- **Frontend**: HTML + Bootstrap + JavaScript (Firebase Hosting)
+- **Database**: Firestore (NoSQL)
+- **Auth**: Firebase Authentication con verifica email
+- **Real-time**: Aggiornamenti automatici
 
 ## 📁 Struttura
 
 ```
-scout-planner/
-├── models/         # Modelli SQLAlchemy
-├── schemas/        # Pydantic schemas
-├── routers/        # API + Web routes
-├── templates/      # Template Jinja2
-├── static/         # CSS + JS + Assets
-├── database/       # SQL schema
-├── main.py         # FastAPI app
-├── requirements.txt
-└── docker-compose.yml
+clan-planner/
+├── public/              # Frontend statico
+│   ├── index.html       # SPA principale
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js       # Firebase SDK + logica
+├── firestore.rules      # Security rules
+├── firestore.indexes.json
+├── firebase.json
+└── README.md
 ```
 
 ## 🎯 Funzionalità
 
-- **Dashboard**: Overview e statistiche
-- **Gestione Eventi**: Riunioni, uscite, campi
-- **Sistema Task**: Assegnazione e monitoraggio
-- **Multi-Gruppo**: Supporto clan e comunità capi
-- **Permessi**: Ruoli Admin, Capi, Staff, Ragazzi
+✅ **Dashboard**: Overview e statistiche real-time  
+✅ **Gestione Eventi**: Riunioni, uscite, campi con calendario  
+✅ **Sistema Task**: Kanban board con 4 stati  
+✅ **Authentication**: Email/Password con verifica email  
+✅ **Permessi**: Ruoli Admin, Reviewer, Base  
+✅ **Mappe**: Integrazione OpenStreetMap e Google Maps  
+✅ **Calendario**: Export Google Calendar e iCal  
+
+## 📊 Database Firestore
+
+### Collection: users
+```javascript
+{
+  uid: string,
+  name: string,
+  email: string,
+  role: "base" | "reviewer" | "admin",
+  created_at: timestamp
+}
+```
+
+### Collection: events
+```javascript
+{
+  title: string,
+  description: string,
+  type: "riunione" | "uscita" | "campo" | "consiglio",
+  start_date: string (datetime-local),
+  end_date: string (datetime-local),
+  location: string,
+  location_lat: number,
+  location_lng: number,
+  created_by: string (uid),
+  created_at: timestamp
+}
+```
+
+### Collection: tasks
+```javascript
+{
+  title: string,
+  description: string,
+  status: "pending" | "in_progress" | "completed" | "cancelled",
+  priority: "low" | "medium" | "high",
+  due_date: string (date),
+  assigned_to: string (uid),
+  created_by: string (uid),
+  visible: boolean,
+  created_at: timestamp
+}
+```
+
+### Collection: permissions
+```javascript
+{
+  // Document ID: "base" | "reviewer" | "admin"
+  event_create: boolean,
+  event_edit: boolean,
+  event_delete: boolean,
+  event_field_title: boolean,
+  event_field_description: boolean,
+  event_field_type: boolean,
+  event_field_location: boolean,
+  event_field_start_date: boolean,
+  event_field_end_date: boolean,
+  task_create: boolean,
+  task_edit: boolean,
+  task_delete: boolean,
+  task_field_title: boolean,
+  task_field_description: boolean,
+  task_field_status: boolean,
+  task_field_priority: boolean,
+  task_field_due_date: boolean,
+  task_field_assigned: boolean
+}
+```
+
+## 🔒 Security Rules
+
+Le regole Firestore garantiscono:
+- Solo utenti autenticati possono accedere
+- Admin/Reviewer possono creare eventi
+- Gli utenti possono modificare solo i propri task
+- Solo admin possono modificare i permessi
 
 ## 🎨 Design
 
 - **Bootstrap 5** per UI responsive
-- **Colori Scout**: Verde #2E7D32, Marrone #8D6E63, Arancione #FF8F00
-- **Template Jinja2** per rendering server-side
-- **JavaScript vanilla** per interattività
+- **Colori Scout**: Verde #2E7D32
+- **SPA** con routing client-side
+- **Firebase SDK** per real-time data
 
-## 🔧 Sviluppo
+## 💰 Costi
 
-### Avvio manuale
+**Piano Spark (Gratuito)**:
+- 50K letture/giorno Firestore
+- 20K scritture/giorno
+- 1GB storage
+- 10GB hosting/mese
+
+Perfetto per clan scout! 🎯
+
+## 🛠️ Comandi Utili
+
 ```bash
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
+# Deploy completo
+firebase deploy
 
-### Database
-Inizializzato automaticamente con `database/schema.sql`
+# Deploy singolo
+firebase deploy --only hosting
+firebase deploy --only firestore:rules
+
+# Logs
+firebase functions:log
+
+# Emulatori locali
+firebase emulators:start
+```
 
 ---
 
-**Scout Planner** - Gestione scout semplificata 🏕️
+**Clan Planner** - Gestione clan nel cloud! ☁️🏕️

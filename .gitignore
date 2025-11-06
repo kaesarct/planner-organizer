@@ -1,3 +1,9 @@
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
 # Python
 __pycache__/
 *.py[cod]
@@ -6,27 +12,27 @@ __pycache__/
 .Python
 env/
 venv/
-.venv/
+*.egg-info/
+
+# Node
+node_modules/
+package-lock.json
+
+# Secrets
 .env
+serviceAccountKey.json
 
-# Database
-*.db
-*.sqlite3
-
-# Docker
-.dockerignore
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
+# Old files
+models/
+routers/
+schemas/
+services/
+templates/
+database/
 docs/
+*.db
+docker-compose.yml
+Dockerfile
+requirements.txt
+main.py
+database.py
