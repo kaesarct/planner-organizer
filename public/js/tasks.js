@@ -27,33 +27,53 @@ export async function renderTasks() {
     `;
     
     return `
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>✅ Task Board</h2>
-            <button class="btn btn-success" onclick="showTaskModal()">+ Nuovo Task</button>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4">✅ Task Board</h2>
+            <button class="btn btn-success btn-sm" onclick="showTaskModal()">+ Task</button>
         </div>
-        <div class="row">
-            <div class="col-3">
-                <div class="card h-100">
-                    <div class="card-header bg-secondary text-white"><h5 class="mb-0">📋 Da Fare</h5><small>${pending.length} task</small></div>
-                    <div class="card-body" style="min-height: 400px">${pending.map(renderTaskCard).join('')}</div>
+        <div class="d-block d-lg-none">
+            <div class="accordion" id="taskAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#pending">📋 Da Fare <span class="badge bg-secondary ms-2">${pending.length}</span></button></h2>
+                    <div id="pending" class="accordion-collapse collapse show" data-bs-parent="#taskAccordion"><div class="accordion-body p-2">${pending.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div></div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#inProgress">⚙️ In Corso <span class="badge bg-primary ms-2">${inProgress.length}</span></button></h2>
+                    <div id="inProgress" class="accordion-collapse collapse" data-bs-parent="#taskAccordion"><div class="accordion-body p-2">${inProgress.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div></div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#completed">✅ Completati <span class="badge bg-success ms-2">${completed.length}</span></button></h2>
+                    <div id="completed" class="accordion-collapse collapse" data-bs-parent="#taskAccordion"><div class="accordion-body p-2">${completed.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div></div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cancelled">❌ Annullati <span class="badge bg-danger ms-2">${cancelled.length}</span></button></h2>
+                    <div id="cancelled" class="accordion-collapse collapse" data-bs-parent="#taskAccordion"><div class="accordion-body p-2">${cancelled.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div></div>
                 </div>
             </div>
-            <div class="col-3">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white"><h5 class="mb-0">⚙️ In Corso</h5><small>${inProgress.length} task</small></div>
-                    <div class="card-body" style="min-height: 400px">${inProgress.map(renderTaskCard).join('')}</div>
+        </div>
+        <div class="row g-2 d-none d-lg-flex">
+            <div class="col-lg-3">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white py-2"><h6 class="mb-0">📋 Da Fare</h6><small>${pending.length} task</small></div>
+                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto">${pending.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div>
                 </div>
             </div>
-            <div class="col-3">
-                <div class="card h-100">
-                    <div class="card-header bg-success text-white"><h5 class="mb-0">✅ Completati</h5><small>${completed.length} task</small></div>
-                    <div class="card-body" style="min-height: 400px">${completed.map(renderTaskCard).join('')}</div>
+            <div class="col-lg-3">
+                <div class="card">
+                    <div class="card-header bg-primary text-white py-2"><h6 class="mb-0">⚙️ In Corso</h6><small>${inProgress.length} task</small></div>
+                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto">${inProgress.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div>
                 </div>
             </div>
-            <div class="col-3">
-                <div class="card h-100">
-                    <div class="card-header bg-danger text-white"><h5 class="mb-0">❌ Annullati</h5><small>${cancelled.length} task</small></div>
-                    <div class="card-body" style="min-height: 400px">${cancelled.map(renderTaskCard).join('')}</div>
+            <div class="col-lg-3">
+                <div class="card">
+                    <div class="card-header bg-success text-white py-2"><h6 class="mb-0">✅ Completati</h6><small>${completed.length} task</small></div>
+                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto">${completed.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card">
+                    <div class="card-header bg-danger text-white py-2"><h6 class="mb-0">❌ Annullati</h6><small>${cancelled.length} task</small></div>
+                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto">${cancelled.map(renderTaskCard).join('') || '<p class="text-muted small">Nessun task</p>'}</div>
                 </div>
             </div>
         </div>

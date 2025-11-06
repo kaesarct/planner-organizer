@@ -61,16 +61,16 @@ export async function renderEvents() {
                 <div class="card">
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <button class="btn btn-outline-secondary" onclick="changePeriod(-1)">‹ Precedente</button>
-                            <h5 id="calendar-title" class="mb-0"></h5>
-                            <button class="btn btn-outline-secondary" onclick="changePeriod(1)">Successivo ›</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="changePeriod(-1)">‹</button>
+                            <h6 id="calendar-title" class="mb-0 text-center flex-grow-1"></h6>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="changePeriod(1)">›</button>
                         </div>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-outline-success active" id="monthViewBtn" onclick="setCalendarView('month')">📅 Mese</button>
-                            <button type="button" class="btn btn-outline-success" id="weekViewBtn" onclick="setCalendarView('week')">📋 Settimana</button>
+                        <div class="btn-group w-100">
+                            <button type="button" class="btn btn-outline-success btn-sm active" id="monthViewBtn" onclick="setCalendarView('month')">📅 Mese</button>
+                            <button type="button" class="btn btn-outline-success btn-sm" id="weekViewBtn" onclick="setCalendarView('week')">📋 Settimana</button>
                         </div>
                     </div>
-                    <div class="card-body"><div id="calendar-grid"></div></div>
+                    <div class="card-body p-2"><div id="calendar-grid"></div></div>
                 </div>
             </div>
         </div>
@@ -276,8 +276,8 @@ function renderMonthView() {
     const firstDay = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
-    let html = '<table class="table table-bordered"><thead><tr>';
-    ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'].forEach(day => { html += `<th class="text-center">${day}</th>`; });
+    let html = '<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr>';
+    ['D', 'L', 'M', 'M', 'G', 'V', 'S'].forEach(day => { html += `<th class="text-center p-1" style="font-size:0.8rem">${day}</th>`; });
     html += '</tr></thead><tbody>';
     let currentDate = new Date(startDate);
     for (let week = 0; week < 6; week++) {
@@ -285,17 +285,17 @@ function renderMonthView() {
         for (let day = 0; day < 7; day++) {
             const isCurrentMonth = currentDate.getMonth() === calendarDate.getMonth();
             const dayEvents = allEvents.filter(event => new Date(event.start_date).toDateString() === currentDate.toDateString());
-            html += `<td class="${isCurrentMonth ? '' : 'text-muted'}" style="height:100px; vertical-align:top;"><div class="fw-bold">${currentDate.getDate()}</div>`;
+            html += `<td class="${isCurrentMonth ? '' : 'text-muted'} p-1" style="min-height:60px; vertical-align:top; font-size:0.75rem;"><div class="fw-bold mb-1">${currentDate.getDate()}</div>`;
             dayEvents.forEach(event => {
                 const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
-                html += `<div class="badge bg-${color} w-100 text-truncate mb-1" style="cursor:pointer" onclick="showEventDetails('${event.id}')" title="${event.title}">${event.title}</div>`;
+                html += `<div class="badge bg-${color} w-100 mb-1" style="cursor:pointer; font-size:0.6rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="showEventDetails('${event.id}')" title="${event.title}">${event.title}</div>`;
             });
             html += '</td>';
             currentDate.setDate(currentDate.getDate() + 1);
         }
         html += '</tr>';
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     document.getElementById('calendar-grid').innerHTML = html;
 }
 
@@ -305,23 +305,47 @@ function renderWeekView() {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     document.getElementById('calendar-title').textContent = `${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}/${weekEnd.getFullYear()}`;
-    let html = '<table class="table table-bordered"><thead><tr>';
-    ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'].forEach(day => { html += `<th class="text-center">${day}</th>`; });
-    html += '</tr></thead><tbody><tr>';
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + i);
-        const dayEvents = allEvents.filter(event => new Date(event.start_date).toDateString() === date.toDateString());
-        html += `<td style="height:400px; vertical-align:top; width:14.28%;"><div class="fw-bold text-center mb-2">${date.getDate()}</div>`;
-        dayEvents.forEach(event => {
-            const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
-            const time = new Date(event.start_date).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
-            html += `<div class="card mb-2" style="cursor:pointer; border-left: 4px solid var(--bs-${color});" onclick="showEventDetails('${event.id}')"><div class="card-body p-2"><small class="text-muted">${time}</small><div class="fw-bold small">${event.title}</div></div></div>`;
-        });
-        html += '</td>';
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+        let html = '<div class="list-group">';
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + i);
+            const dayEvents = allEvents.filter(event => new Date(event.start_date).toDateString() === date.toDateString());
+            const dayName = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][i];
+            html += `<div class="list-group-item"><h6 class="mb-2">${dayName} ${date.getDate()}/${date.getMonth()+1}</h6>`;
+            if (dayEvents.length > 0) {
+                dayEvents.forEach(event => {
+                    const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
+                    const time = new Date(event.start_date).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+                    html += `<div class="card mb-2" style="cursor:pointer; border-left: 4px solid var(--bs-${color});" onclick="showEventDetails('${event.id}')"><div class="card-body p-2"><small class="text-muted">${time}</small><div class="fw-bold small">${event.title}</div></div></div>`;
+                });
+            } else {
+                html += '<p class="text-muted small mb-0">Nessun evento</p>';
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+        document.getElementById('calendar-grid').innerHTML = html;
+    } else {
+        let html = '<table class="table table-bordered"><thead><tr>';
+        ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'].forEach(day => { html += `<th class="text-center">${day}</th>`; });
+        html += '</tr></thead><tbody><tr>';
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + i);
+            const dayEvents = allEvents.filter(event => new Date(event.start_date).toDateString() === date.toDateString());
+            html += `<td style="height:400px; vertical-align:top; width:14.28%;"><div class="fw-bold text-center mb-2">${date.getDate()}</div>`;
+            dayEvents.forEach(event => {
+                const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
+                const time = new Date(event.start_date).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+                html += `<div class="card mb-2" style="cursor:pointer; border-left: 4px solid var(--bs-${color});" onclick="showEventDetails('${event.id}')"><div class="card-body p-2"><small class="text-muted">${time}</small><div class="fw-bold small">${event.title}</div></div></div>`;
+            });
+            html += '</td>';
+        }
+        html += '</tr></tbody></table>';
+        document.getElementById('calendar-grid').innerHTML = html;
     }
-    html += '</tr></tbody></table>';
-    document.getElementById('calendar-grid').innerHTML = html;
 }
 
 function setupLocationSearch() {

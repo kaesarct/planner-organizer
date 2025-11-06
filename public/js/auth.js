@@ -13,6 +13,10 @@ export function initAuth(onUserChange) {
                 return;
             }
             
+            if ('caches' in window) {
+                caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+            }
+            
             setCurrentUser(user);
             
             const userDocRef = doc(db, 'users', user.uid);

@@ -15,13 +15,13 @@ export async function renderDashboard() {
     return `
         <h2>📊 Dashboard</h2>
         <div class="row">
-            <div class="col-md-3"><div class="card text-white bg-primary"><div class="card-body"><h5>I Miei Task</h5><h2>${tasks.length}</h2></div></div></div>
-            <div class="col-md-3"><div class="card text-white bg-warning"><div class="card-body"><h5>In Corso</h5><h2>${inProgress}</h2></div></div></div>
-            <div class="col-md-3"><div class="card text-white bg-secondary"><div class="card-body"><h5>Da Fare</h5><h2>${pending}</h2></div></div></div>
-            <div class="col-md-3"><div class="card text-white bg-success"><div class="card-body"><h5>Completati</h5><h2>${completed}</h2></div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card text-white bg-primary"><div class="card-body text-center"><h6>I Miei Task</h6><h2>${tasks.length}</h2></div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card text-white bg-warning"><div class="card-body text-center"><h6>In Corso</h6><h2>${inProgress}</h2></div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card text-white bg-secondary"><div class="card-body text-center"><h6>Da Fare</h6><h2>${pending}</h2></div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card text-white bg-success"><div class="card-body text-center"><h6>Completati</h6><h2>${completed}</h2></div></div></div>
         </div>
-        <div class="row mt-4">
-            <div class="col-md-6">
+        <div class="row mt-2">
+            <div class="col-12 col-md-6 mb-3">
                 <div class="card">
                     <div class="card-header"><h5>Prossimi Eventi</h5></div>
                     <div class="card-body">
@@ -34,7 +34,7 @@ export async function renderDashboard() {
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6 mb-3">
                 <div class="card">
                     <div class="card-header"><h5>I Miei Task</h5></div>
                     <div class="card-body">
