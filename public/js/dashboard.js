@@ -1,11 +1,16 @@
 import { db, currentUser } from './config.js';
-import { collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, getDocs, query, where, orderBy, addDoc, serverTimestamp, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 export async function renderDashboard() {
     const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('assigned_to', '==', currentUser.uid), where('visible', '==', true)));
     const tasks = tasksSnap.docs.map(d => ({id: d.id, ...d.data()}));
     const eventsSnap = await getDocs(query(collection(db, 'events'), orderBy('start_date')));
     const events = eventsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('meeting_date', 'desc')));
+    const reports = reportsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+    const userRole = userDoc.data()?.role || 'base';
+    const canAddReport = ['admin', 'reviewer', 'segretario'].includes(userRole);
     const now = new Date();
     const upcomingEvents = events.filter(e => new Date(e.start_date) >= now).slice(0, 5);
     const pending = tasks.filter(t => t.status === 'pending').length;
@@ -14,6 +19,29 @@ export async function renderDashboard() {
     
     return `
         <h2>📊 Dashboard</h2>
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">📝 Resoconti Riunioni</h5>
+                        ${canAddReport ? '<button class="btn btn-sm btn-success" onclick="showAddReportModal()">+ Aggiungi Resoconto</button>' : ''}
+                    </div>
+                    <div class="card-body">
+                        ${reports.length > 0 ? reports.slice(0, 5).map(r => `
+                            <div class="border-bottom pb-2 mb-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <strong>${new Date(r.meeting_date).toLocaleDateString('it-IT', {weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'})}</strong>
+                                        <p class="text-muted mb-1">${r.content.substring(0, 150)}${r.content.length > 150 ? '...' : ''}</p>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="showReportModal('${r.id}', '${r.meeting_date}', \`${r.content.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`)">Leggi</button>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-muted">Nessun resoconto disponibile</p>'}
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="row">
             <div class="col-6 col-md-3 mb-3"><div class="card text-white bg-primary"><div class="card-body text-center"><h6>I Miei Task</h6><h2>${tasks.length}</h2></div></div></div>
             <div class="col-6 col-md-3 mb-3"><div class="card text-white bg-warning"><div class="card-body text-center"><h6>In Corso</h6><h2>${inProgress}</h2></div></div></div>
@@ -71,3 +99,71 @@ function formatDashboardDate(dateString) {
     if (diffDays < 7) return `Tra ${diffDays} giorni`;
     return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+window.showReportModal = (id, date, content) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Resoconto del ${new Date(date).toLocaleDateString('it-IT', {weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'})}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="white-space: pre-wrap;">${content}</div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button></div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    modal.addEventListener('hidden.bs.modal', () => modal.remove());
+};
+
+window.showAddReportModal = () => {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aggiungi Resoconto Riunione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Data Riunione</label>
+                        <input type="date" id="report-date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Resoconto</label>
+                        <textarea id="report-content" class="form-control" rows="10" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-success" onclick="saveReport()">Salva</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    modal.addEventListener('hidden.bs.modal', () => modal.remove());
+};
+
+window.saveReport = async () => {
+    const date = document.getElementById('report-date').value;
+    const content = document.getElementById('report-content').value;
+    if (!date || !content) return alert('Compila tutti i campi');
+    await addDoc(collection(db, 'reports'), {
+        meeting_date: date,
+        content,
+        created_by: currentUser.uid,
+        created_at: serverTimestamp()
+    });
+    document.querySelector('.modal.show .btn-close').click();
+    showPage('dashboard');
+};

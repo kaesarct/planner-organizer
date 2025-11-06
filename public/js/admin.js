@@ -35,6 +35,7 @@ export async function renderAdmin() {
             <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#admin-users">👥 Utenti</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#admin-tasks">✅ Task</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#admin-events">📅 Eventi</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#admin-reports" onclick="setTimeout(loadReports, 100)">📝 Resoconti</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#admin-settings" onclick="setTimeout(loadPermissions, 100)">⚙️ Permessi</a></li>
         </ul>
         <div class="tab-content">
@@ -48,10 +49,11 @@ export async function renderAdmin() {
                                 <tr>
                                     <td>${u.name}</td>
                                     <td>${u.email}</td>
-                                    <td><span class="badge bg-${u.role === 'admin' ? 'danger' : u.role === 'reviewer' ? 'warning' : 'secondary'}">${u.role}</span></td>
+                                    <td><span class="badge bg-${u.role === 'admin' ? 'danger' : u.role === 'reviewer' ? 'warning' : u.role === 'segretario' ? 'info' : 'secondary'}">${u.role}</span></td>
                                     <td>
                                         <select class="form-select form-select-sm" style="width:auto; display:inline-block" onchange="changeUserRole('${u.id}', this.value)">
                                             <option value="base" ${u.role === 'base' ? 'selected' : ''}>Base</option>
+                                            <option value="segretario" ${u.role === 'segretario' ? 'selected' : ''}>Segretario</option>
                                             <option value="reviewer" ${u.role === 'reviewer' ? 'selected' : ''}>Reviewer</option>
                                             <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
                                         </select>
@@ -91,13 +93,22 @@ export async function renderAdmin() {
                     </table>
                 </div>
             </div>
+            <div class="tab-pane fade" id="admin-reports">
+                <h5>Gestione Resoconti</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead><tr><th>Data Riunione</th><th>Anteprima</th><th>Azioni</th></tr></thead>
+                        <tbody id="admin-reports-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
             <div class="tab-pane fade" id="admin-settings">
                 <h5>Gestione Permessi per Ruolo</h5>
                 <div class="card mb-3">
                     <div class="card-header"><strong>Permessi Generali Eventi</strong></div>
                     <div class="card-body">
                         <table class="table table-bordered table-sm">
-                            <thead><tr><th>Azione</th><th class="text-center">Base</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
+                            <thead><tr><th>Azione</th><th class="text-center">Base</th><th class="text-center">Segretario</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
                             <tbody id="event-general-permissions-tbody"></tbody>
                         </table>
                     </div>
@@ -106,7 +117,7 @@ export async function renderAdmin() {
                     <div class="card-header"><strong>Permessi Campi Eventi</strong></div>
                     <div class="card-body">
                         <table class="table table-bordered table-sm">
-                            <thead><tr><th>Campo</th><th class="text-center">Base</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
+                            <thead><tr><th>Campo</th><th class="text-center">Base</th><th class="text-center">Segretario</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
                             <tbody id="event-fields-permissions-tbody"></tbody>
                         </table>
                     </div>
@@ -115,7 +126,7 @@ export async function renderAdmin() {
                     <div class="card-header"><strong>Permessi Generali Task</strong></div>
                     <div class="card-body">
                         <table class="table table-bordered table-sm">
-                            <thead><tr><th>Azione</th><th class="text-center">Base</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
+                            <thead><tr><th>Azione</th><th class="text-center">Base</th><th class="text-center">Segretario</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
                             <tbody id="task-general-permissions-tbody"></tbody>
                         </table>
                     </div>
@@ -124,7 +135,7 @@ export async function renderAdmin() {
                     <div class="card-header"><strong>Permessi Campi Task</strong></div>
                     <div class="card-body">
                         <table class="table table-bordered table-sm">
-                            <thead><tr><th>Campo</th><th class="text-center">Base</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
+                            <thead><tr><th>Campo</th><th class="text-center">Base</th><th class="text-center">Segretario</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
                             <tbody id="task-fields-permissions-tbody"></tbody>
                         </table>
                     </div>
@@ -158,8 +169,8 @@ window.deleteEventAdmin = async (eventId) => {
 
 window.loadPermissions = async function() {
     try {
-        const permissions = { base: {}, reviewer: {}, admin: {} };
-        for (const role of ['base', 'reviewer', 'admin']) {
+        const permissions = { base: {}, segretario: {}, reviewer: {}, admin: {} };
+        for (const role of ['base', 'segretario', 'reviewer', 'admin']) {
             const permDoc = await getDoc(doc(db, 'permissions', role));
             if (!permDoc.exists()) {
                 const defaultPerms = {
@@ -188,12 +199,26 @@ window.loadPermissions = async function() {
                 </tr>
             `).join('');
         };
-        renderTable('event-general-permissions-tbody', [
+        const permissions_segretario = permissions.segretario || {};
+        const renderTableWithSegretario = (tbodyId, perms) => {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            tbody.innerHTML = perms.map(perm => `
+                <tr>
+                    <td>${perm.label}</td>
+                    <td class="text-center"><input type="checkbox" class="form-check-input" ${permissions.base[perm.key] ? 'checked' : ''} onchange="togglePermission('base', '${perm.key}', this.checked)"></td>
+                    <td class="text-center"><input type="checkbox" class="form-check-input" ${permissions_segretario[perm.key] ? 'checked' : ''} onchange="togglePermission('segretario', '${perm.key}', this.checked)"></td>
+                    <td class="text-center"><input type="checkbox" class="form-check-input" ${permissions.reviewer[perm.key] ? 'checked' : ''} onchange="togglePermission('reviewer', '${perm.key}', this.checked)"></td>
+                    <td class="text-center"><input type="checkbox" class="form-check-input" ${permissions.admin[perm.key] ? 'checked' : ''} disabled></td>
+                </tr>
+            `).join('');
+        };
+        renderTableWithSegretario('event-general-permissions-tbody', [
             { key: 'event_create', label: 'Crea Eventi' },
             { key: 'event_edit', label: 'Modifica Eventi' },
             { key: 'event_delete', label: 'Elimina Eventi' }
         ]);
-        renderTable('event-fields-permissions-tbody', [
+        renderTableWithSegretario('event-fields-permissions-tbody', [
             { key: 'event_field_title', label: 'Titolo' },
             { key: 'event_field_description', label: 'Descrizione' },
             { key: 'event_field_type', label: 'Tipo' },
@@ -201,12 +226,12 @@ window.loadPermissions = async function() {
             { key: 'event_field_start_date', label: 'Data Inizio' },
             { key: 'event_field_end_date', label: 'Data Fine' }
         ]);
-        renderTable('task-general-permissions-tbody', [
+        renderTableWithSegretario('task-general-permissions-tbody', [
             { key: 'task_create', label: 'Crea Task' },
             { key: 'task_edit', label: 'Modifica Task' },
             { key: 'task_delete', label: 'Elimina Task' }
         ]);
-        renderTable('task-fields-permissions-tbody', [
+        renderTableWithSegretario('task-fields-permissions-tbody', [
             { key: 'task_field_title', label: 'Titolo' },
             { key: 'task_field_description', label: 'Descrizione' },
             { key: 'task_field_status', label: 'Stato' },
@@ -221,4 +246,26 @@ window.loadPermissions = async function() {
 
 window.togglePermission = async (role, permission, value) => {
     await setDoc(doc(db, 'permissions', role), { [permission]: value }, { merge: true });
+};
+
+window.loadReports = async () => {
+    const reportsSnap = await getDocs(collection(db, 'reports'));
+    const reports = reportsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    reports.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date));
+    const tbody = document.getElementById('admin-reports-tbody');
+    if (tbody) {
+        tbody.innerHTML = reports.map(r => `
+            <tr>
+                <td><strong>${new Date(r.meeting_date).toLocaleDateString('it-IT', {weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'})}</strong></td>
+                <td><small class="text-muted">${r.content.substring(0, 100)}${r.content.length > 100 ? '...' : ''}</small></td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteReport('${r.id}')">🗑️</button></td>
+            </tr>
+        `).join('');
+    }
+};
+
+window.deleteReport = async (reportId) => {
+    if (!confirm('Sei sicuro di voler eliminare questo resoconto?')) return;
+    await deleteDoc(doc(db, 'reports', reportId));
+    loadReports();
 };
