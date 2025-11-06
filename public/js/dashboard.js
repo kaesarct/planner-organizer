@@ -2,15 +2,16 @@ import { db, currentUser } from './config.js';
 import { collection, getDocs, query, where, orderBy, addDoc, serverTimestamp, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 export async function renderDashboard() {
-    const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('assigned_to', '==', currentUser.uid), where('visible', '==', true)));
-    const tasks = tasksSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('visible', '==', true)));
+    const tasks = tasksSnap.docs.filter(d => d.data().assigned_to === currentUser.uid || !d.data().assigned_to).map(d => ({id: d.id, ...d.data()}));
     const eventsSnap = await getDocs(query(collection(db, 'events'), orderBy('start_date')));
     const events = eventsSnap.docs.map(d => ({id: d.id, ...d.data()}));
     const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('meeting_date', 'desc')));
     const reports = reportsSnap.docs.map(d => ({id: d.id, ...d.data()}));
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     const userRole = userDoc.data()?.role || 'base';
-    const canAddReport = ['admin', 'reviewer', 'segretario'].includes(userRole);
+    const permDoc = await getDoc(doc(db, 'permissions', userRole));
+    const canAddReport = permDoc.exists() && permDoc.data().report_create;
     const now = new Date();
     const upcomingEvents = events.filter(e => new Date(e.start_date) >= now).slice(0, 5);
     const pending = tasks.filter(t => t.status === 'pending').length;

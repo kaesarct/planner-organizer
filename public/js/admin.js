@@ -1,6 +1,8 @@
 import { db } from './config.js';
 import { collection, getDocs, updateDoc, deleteDoc, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
+window.db = db;
+
 export async function renderAdmin() {
     const usersSnap = await getDocs(collection(db, 'users'));
     const users = usersSnap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -22,7 +24,10 @@ export async function renderAdmin() {
                     <td><small class="text-muted">${t.due_date ? new Date(t.due_date).toLocaleDateString('it-IT') : '-'}</small></td>
                     <td><small class="text-muted">${t.assigned_to ? (usersMap[t.assigned_to] || 'Utente') : 'Non assegnato'}</small></td>
                     <td><span class="badge bg-${t.visible ? 'success' : 'danger'}">${t.visible ? '👁️ Visibile' : '🙈 Nascosto'}</span></td>
-                    <td><button class="btn btn-${t.visible ? 'secondary' : 'success'} btn-sm" onclick="toggleTaskVisibility('${t.id}', ${!t.visible})">${t.visible ? '🙈' : '👁️'}</button></td>
+                    <td>
+                        <button class="btn btn-${t.visible ? 'secondary' : 'success'} btn-sm" onclick="toggleTaskVisibility('${t.id}', ${!t.visible})">${t.visible ? '🙈' : '👁️'}</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteTaskAdmin('${t.id}')">🗑️</button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -69,7 +74,7 @@ export async function renderAdmin() {
                 <h5>Gestione Task (${tasks.length})</h5>
                 <div class="table-responsive">
                     <table class="table table-striped">
-                        <thead><tr><th>Titolo</th><th>Priorità</th><th>Stato</th><th>Scadenza</th><th>Assegnato a</th><th>Visibile</th><th>Azioni</th></tr></thead>
+                        <thead><tr><th>Titolo</th><th>Priorità</th><th>Stato</th><th>Scadenza</th><th>Assegnato a</th><th>Visibile</th><th style="width:120px">Azioni</th></tr></thead>
                         <tbody id="admin-tasks-tbody"></tbody>
                     </table>
                 </div>
@@ -140,6 +145,15 @@ export async function renderAdmin() {
                         </table>
                     </div>
                 </div>
+                <div class="card mb-3">
+                    <div class="card-header"><strong>Permessi Resoconti</strong></div>
+                    <div class="card-body">
+                        <table class="table table-bordered table-sm">
+                            <thead><tr><th>Azione</th><th class="text-center">Base</th><th class="text-center">Segretario</th><th class="text-center">Reviewer</th><th class="text-center">Admin</th></tr></thead>
+                            <tbody id="report-permissions-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -167,6 +181,12 @@ window.deleteEventAdmin = async (eventId) => {
     showPage('admin');
 };
 
+window.deleteTaskAdmin = async (taskId) => {
+    if (!confirm('Sei sicuro di voler eliminare questo task?')) return;
+    await deleteDoc(doc(db, 'tasks', taskId));
+    showPage('admin');
+};
+
 window.loadPermissions = async function() {
     try {
         const permissions = { base: {}, segretario: {}, reviewer: {}, admin: {} };
@@ -179,7 +199,8 @@ window.loadPermissions = async function() {
                     event_field_location: role !== 'base', event_field_start_date: role !== 'base', event_field_end_date: role !== 'base',
                     task_create: role !== 'base', task_edit: true, task_delete: role !== 'base',
                     task_field_title: true, task_field_description: true, task_field_status: true,
-                    task_field_priority: role !== 'base', task_field_due_date: role !== 'base', task_field_assigned: role !== 'base'
+                    task_field_priority: role !== 'base', task_field_due_date: role !== 'base', task_field_assigned: role !== 'base',
+                    report_create: role !== 'base'
                 };
                 await setDoc(doc(db, 'permissions', role), defaultPerms);
                 permissions[role] = defaultPerms;
@@ -238,6 +259,9 @@ window.loadPermissions = async function() {
             { key: 'task_field_priority', label: 'Priorità' },
             { key: 'task_field_due_date', label: 'Data Scadenza' },
             { key: 'task_field_assigned', label: 'Assegnato a' }
+        ]);
+        renderTableWithSegretario('report-permissions-tbody', [
+            { key: 'report_create', label: 'Crea Resoconti' }
         ]);
     } catch (error) {
         console.error('Errore caricamento permessi:', error);

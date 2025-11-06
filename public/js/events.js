@@ -85,7 +85,7 @@ export async function renderEvents() {
                         <input type="hidden" id="event-id">
                         <div class="mb-3"><label class="form-label">Titolo</label><input type="text" id="event-title" class="form-control" required></div>
                         <div class="mb-3"><label class="form-label">Descrizione</label><textarea id="event-description" class="form-control" rows="3"></textarea></div>
-                        <div class="mb-3"><label class="form-label">Tipo</label><select id="event-type" class="form-select"><option value="riunione">Riunione</option><option value="uscita">Uscita</option><option value="campo">Campo</option><option value="consiglio">Consiglio</option></select></div>
+                        <div class="mb-3"><label class="form-label">Tipo</label><select id="event-type" class="form-select"><option value="riunione">Riunione</option><option value="uscita">Uscita</option><option value="campo">Campo</option><option value="evento">Evento</option></select></div>
                         <div class="mb-3"><label class="form-label">Luogo</label><input type="text" id="event-location" class="form-control" placeholder="Cerca luogo..." autocomplete="off"><div id="location-results" class="list-group" style="display:none; max-height:200px; overflow-y:auto;"></div><input type="hidden" id="event-location-lat"><input type="hidden" id="event-location-lng"></div>
                         <div class="mb-3"><label class="form-label">Data Inizio</label><input type="datetime-local" id="event-start" class="form-control" required></div>
                         <div class="mb-3"><label class="form-label">Data Fine</label><input type="datetime-local" id="event-end" class="form-control" required></div>
@@ -287,7 +287,7 @@ function renderMonthView() {
             const dayEvents = allEvents.filter(event => new Date(event.start_date).toDateString() === currentDate.toDateString());
             html += `<td class="${isCurrentMonth ? '' : 'text-muted'} p-1" style="min-height:60px; vertical-align:top; font-size:0.75rem;"><div class="fw-bold mb-1">${currentDate.getDate()}</div>`;
             dayEvents.forEach(event => {
-                const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
+                const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'info';
                 html += `<div class="badge bg-${color} w-100 mb-1" style="cursor:pointer; font-size:0.6rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="showEventDetails('${event.id}')" title="${event.title}">${event.title}</div>`;
             });
             html += '</td>';
@@ -316,7 +316,7 @@ function renderWeekView() {
             html += `<div class="list-group-item"><h6 class="mb-2">${dayName} ${date.getDate()}/${date.getMonth()+1}</h6>`;
             if (dayEvents.length > 0) {
                 dayEvents.forEach(event => {
-                    const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
+                    const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'info';
                     const time = new Date(event.start_date).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
                     html += `<div class="card mb-2" style="cursor:pointer; border-left: 4px solid var(--bs-${color});" onclick="showEventDetails('${event.id}')"><div class="card-body p-2"><small class="text-muted">${time}</small><div class="fw-bold small">${event.title}</div></div></div>`;
                 });
@@ -337,7 +337,7 @@ function renderWeekView() {
             const dayEvents = allEvents.filter(event => new Date(event.start_date).toDateString() === date.toDateString());
             html += `<td style="height:400px; vertical-align:top; width:14.28%;"><div class="fw-bold text-center mb-2">${date.getDate()}</div>`;
             dayEvents.forEach(event => {
-                const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'danger';
+                const color = event.type === 'riunione' ? 'primary' : event.type === 'uscita' ? 'success' : event.type === 'campo' ? 'warning' : 'info';
                 const time = new Date(event.start_date).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
                 html += `<div class="card mb-2" style="cursor:pointer; border-left: 4px solid var(--bs-${color});" onclick="showEventDetails('${event.id}')"><div class="card-body p-2"><small class="text-muted">${time}</small><div class="fw-bold small">${event.title}</div></div></div>`;
             });
