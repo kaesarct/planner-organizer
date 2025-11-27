@@ -1,5 +1,5 @@
 import { db, currentUser } from './config.js';
-import { collection, getDocs, query, where, orderBy, addDoc, serverTimestamp, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, getDocs, query, where, orderBy, limit, addDoc, serverTimestamp, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 export async function renderDashboard() {
     const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('visible', '==', true)));
@@ -8,6 +8,8 @@ export async function renderDashboard() {
     const events = eventsSnap.docs.map(d => ({id: d.id, ...d.data()}));
     const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('meeting_date', 'desc')));
     const reports = reportsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    const pollsSnap = await getDocs(query(collection(db, 'polls'), orderBy('created_at', 'desc'), limit(3)));
+    const polls = pollsSnap.docs.map(d => ({id: d.id, ...d.data()}));
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     const userRole = userDoc.data()?.role || 'base';
     const permDoc = await getDoc(doc(db, 'permissions', userRole));
@@ -84,6 +86,41 @@ export async function renderDashboard() {
                                 </table>
                             </div>
                         ` : '<p class="text-muted">Nessun task assegnato</p>'}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">📊 Ultimi Sondaggi</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showPage('polls')">Vedi Tutti</button>
+                    </div>
+                    <div class="card-body">
+                        ${polls.length > 0 ? `
+                            <div class="row">
+                                ${polls.map(p => {
+                                    const isExpired = new Date(p.deadline) <= new Date();
+                                    const totalVotes = p.votes ? Object.keys(p.votes).length : 0;
+                                    return `
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100 ${isExpired ? 'bg-light' : 'border-success'}" style="cursor:pointer" onclick="showPage('polls'); setTimeout(() => showPollDetails('${p.id}'), 500)">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">${p.question}</h6>
+                                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                                        <span class="badge bg-${isExpired ? 'secondary' : 'success'}">${isExpired ? 'Scaduto' : 'Attivo'}</span>
+                                                        <small class="text-muted">👥 ${totalVotes} voti</small>
+                                                    </div>
+                                                    <small class="text-muted d-block mt-2">📅 Scadenza: ${new Date(p.deadline).toLocaleDateString('it-IT')}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        ` : '<p class="text-muted">Nessun sondaggio recente</p>'}
                     </div>
                 </div>
             </div>

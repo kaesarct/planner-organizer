@@ -1,17 +1,30 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Clan Planner</title>
+
+    <!-- Meta tag per PWA -->
+    <meta name="description" content="Gestione eventi e task per clan scout AGESCI">
     <meta name="theme-color" content="#2E7D32">
+
+    <!-- Meta tag Apple per iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Clan Planner">
+
+    <!-- Manifest e icone -->
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css?v=5">
+    <link rel="stylesheet" href="/css/style.css?v=7">
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-scout" id="navbar" style="display:none;">
         <div class="container-fluid">
@@ -24,6 +37,7 @@
                     <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('dashboard')">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('events')">Eventi</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('tasks')">Task</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="showPage('polls')">📊 Sondaggi</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Logout</a></li>
                 </ul>
             </div>
@@ -42,18 +56,23 @@
                             <input type="password" id="login-password" class="form-control mb-3" placeholder="Password">
                             <button onclick="login()" class="btn btn-primary w-100 mb-2">Accedi</button>
                             <div class="text-center my-2">oppure</div>
-                            <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">🔴 Accedi con Google</button>
-                            <p class="text-center mt-3">Non hai un account? <a href="#" onclick="toggleAuth()">Registrati</a></p>
+                            <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">🔴 Accedi con
+                                Google</button>
+                            <p class="text-center mt-3">Non hai un account? <a href="#"
+                                    onclick="toggleAuth()">Registrati</a></p>
                         </div>
                         <div id="register-form" style="display:none;">
                             <h5>Registrati</h5>
                             <input type="text" id="register-name" class="form-control mb-2" placeholder="Nome">
                             <input type="email" id="register-email" class="form-control mb-2" placeholder="Email">
-                            <input type="password" id="register-password" class="form-control mb-3" placeholder="Password">
+                            <input type="password" id="register-password" class="form-control mb-3"
+                                placeholder="Password">
                             <button onclick="register()" class="btn btn-success w-100 mb-2">Registrati</button>
                             <div class="text-center my-2">oppure</div>
-                            <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">🔴 Registrati con Google</button>
-                            <p class="text-center mt-3">Hai già un account? <a href="#" onclick="toggleAuth()">Accedi</a></p>
+                            <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">🔴 Registrati con
+                                Google</button>
+                            <p class="text-center mt-3">Hai già un account? <a href="#"
+                                    onclick="toggleAuth()">Accedi</a></p>
                         </div>
                     </div>
                 </div>
@@ -87,7 +106,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="/js/app.js?v=5"></script>
+    <script type="module" src="/js/app.js?v=7"></script>
     <script>
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -104,12 +123,65 @@
             };
             document.body.appendChild(installBtn);
         });
+
+        // Funzione per forzare cancellazione cache
+        window.clearAllCaches = async () => {
+            if ('serviceWorker' in navigator) {
+                // Invia messaggio al SW per cancellare cache
+                const registration = await navigator.serviceWorker.ready;
+                registration.active.postMessage({ action: 'clearCache' });
+
+                // Disregistra il Service Worker
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+
+            // Cancella tutte le cache
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+
+            // Ricarica la pagina
+            alert('Cache cancellata! La pagina si ricaricherà.');
+            window.location.reload(true);
+        };
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').then(reg => {
-                reg.update();
+                // Controlla aggiornamenti ogni 60 secondi
+                setInterval(() => {
+                    reg.update();
+                }, 60000);
+
+                // Rileva quando c'è un nuovo Service Worker in attesa
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // C'è un nuovo Service Worker, ricarica la pagina
+                            console.log('Nuovo Service Worker disponibile, ricarico...');
+                            newWorker.postMessage({ action: 'skipWaiting' });
+                            window.location.reload();
+                        }
+                    });
+                });
+
                 console.log('Service Worker registrato');
             }).catch(err => console.error('Errore Service Worker:', err));
+
+            // Ricarica quando il Service Worker prende il controllo
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
         }
     </script>
 </body>
+
 </html>
